@@ -13,23 +13,25 @@ module.exports = {
   description: "Play a song",
   aliases: ["place"],
   data: new SlashCommandBuilder().setName("play").setDescription("Play a song"),
-  execute: async (message) => {
-    const oldConnection = getVoiceConnection(message.channel.guild.id);
+  execute: async (
+    client,
+    args,
+    user,
+    channel,
+    voiceChannel,
+    message,
+    prefix
+  ) => {
+    const oldConnection = getVoiceConnection(channel.guild.id);
     if (!oldConnection)
-      return message.channel
+      return channel
         .send({
-          content: translate(
-            message.client,
-            message.channel.guild.id,
-            "NOT_CONNECTED"
-          ),
+          content: translate(client, channel.guild.id, "NOT_CONNECTED"),
         })
         .catch(() => null);
 
-    console.log(message);
-
-    const track = message.args.join(" ");
-    if (!message.args[0])
+    const track = args.join(" ");
+    if (!args[0])
       return channel
         .send(
           `👎 Please add the wished Music via saying: \`voice play <Name/Link>\``
@@ -108,7 +110,7 @@ module.exports = {
           )
           .catch(() => null);
       } else {
-        /* FOR PLAYLIST REQUEST */
+      /* FOR PLAYLIST REQUEST */
         // get the song, or the first playlist song
         song = song ? song : playlist.videos[0];
         // remove the song which got added

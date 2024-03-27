@@ -1,4 +1,8 @@
-const { getVoiceConnection } = require("@discordjs/voice");
+const {
+  getVoiceConnection,
+  VoiceConnectionStatus,
+  createAudioResource,
+} = require("@discordjs/voice");
 const { PermissionsBitField, SlashCommandBuilder } = require("discord.js");
 const { joinVoiceChannelUtil } = require("../utils/playerFunctions.js");
 const { parseAudioData } = require("../utils/speechHandler.js");
@@ -13,7 +17,6 @@ module.exports = {
   async execute(message) {
     console.log("Whatttt");
     try {
-      console.log("Trying...");
       // User's VOice Channel Connection
       const { channel } = message.member.voice;
       // if not connected, return an error
@@ -77,6 +80,42 @@ module.exports = {
         message.client,
         channel
       );
+
+      // Keep alive!
+      const networkStateChangeHandler = (oldNetworkState, newNetworkState) => {
+        const newUdp = Reflect.get(newNetworkState, "udp");
+        clearInterval(newUdp?.keepAliveInterval);
+      };
+
+      voiceConnection.on("stateChange", (oldState, newState) => {
+        const oldNetworking = Reflect.get(oldState, "networking");
+        const newNetworking = Reflect.get(newState, "networking");
+
+        oldNetworking?.off("stateChange", networkStateChangeHandler);
+        newNetworking?.on("stateChange", networkStateChangeHandler);
+      });
+
+      voiceConnection.on(
+        VoiceConnectionStatus.Disconnected,
+        async (oldState, newState) => {
+          console.log("Disconnected?");
+          try {
+            await Promise.race([
+              entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+              entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+            ]);
+            // Seems to be reconnecting to a new channel - ignore disconnect
+          } catch (error) {
+            console.log("Destroying!");
+            // Seems to be a real disconnect which SHOULDN'T be recovered from
+            voiceConnection.destroy();
+
+            if (oldConnection) {
+              oldConnection.destroy();
+            }
+          }
+        }
+      );
       if (!voiceConnection)
         return message
           .reply({
@@ -92,6 +131,7 @@ module.exports = {
       message.client.listenAbleUsers.add(message.user.id);
 
       console.log("Adding this user to listenable users:", message.user);
+
       //STARTE ZUHÖRER
       voiceConnection.receiver.speaking.on("start", async (userId) => {
         // if it's an invalid User, or the user is not allowed anymore, or still is on cooldown WAIT

@@ -5,10 +5,15 @@ const {
   unlinkSync,
   createReadStream,
 } = require("fs");
+const fs = require("fs");
+
 const { EndBehaviorType } = require("@discordjs/voice");
 const prism = require("prism-media");
 const fetch = require("node-fetch");
-const ffmpeg = require("ffmpeg");
+
+const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
+const ffmpeg = require("fluent-ffmpeg");
+ffmpeg.setFfmpegPath(ffmpegPath);
 const { pipeline } = require("node:stream");
 const { AttachmentBuilder } = require("discord.js");
 // util functions and settings
@@ -27,24 +32,20 @@ async function parseAudioData(client, VoiceConnection, user, channel) {
   const audioStream = VoiceConnection.receiver.subscribe(user.id, {
     end: {
       behavior: EndBehaviorType.AfterSilence,
-      duration: 1000,
+      duration: 2000,
     },
     highWaterMark: 1 << 16,
   });
-  // create an ogglogicalbitstream piper
-  const oggStream = new prism.opus.OggLogicalBitstream({
-    opusHead: new prism.opus.OpusHead({
-      channelCount: 1,
-      sampleRate: 48000,
-    }),
-    pageSizeControl: {
-      maxPackets: 10,
-    },
-  });
-  // and lastly the file write stream
-  const out = createWriteStream(filename);
+  const writeStream = fs.createWriteStream(filename);
 
-  // send a status update
+  const opusDecoder = new prism.opus.Decoder({
+    frameSize: 960,
+    channels: 2,
+    rate: 48000,
+  });
+
+  audioStream.pipe(opusDecoder).pipe(writeStream);
+
   console.log(`👂 Started recording ${filename}`);
   const msg = await channel
     .send({
@@ -58,15 +59,9 @@ async function parseAudioData(client, VoiceConnection, user, channel) {
     })
     .catch(() => null);
 
-  // pipe the audiostream, ogg stream and writestream together, once audiostream is finished
-  pipeline(audioStream, oggStream, out, async (err) => {
-    if (err)
-      return console.warn(
-        `❌ Error recording file ${filename} - ${err.message}`
-      );
+  writeStream.on("close", async () => {
+    console.log("OUT finished");
 
-    console.log(`✅ Recorded ${filename}`);
-    // TESTED - here we have a PCM File which when transformed to a .wav file is listen-able
     return await handlePCMFile(
       client,
       VoiceConnection,
@@ -76,7 +71,34 @@ async function parseAudioData(client, VoiceConnection, user, channel) {
       filename
     );
   });
+  // create an ogglogicalbitstream piper
+  // const oggStream = new prism.opus.OggLogicalBitstream({
+  //   opusHead: new prism.opus.OpusHead({
+  //     channelCount: 2,
+  //     sampleRate: 44100,
+  //   }),
+  //   pageSizeControl: {
+  //     maxPackets: 10,
+  //   },
+  // });
+  // // and lastly the file write stream
+  // const out = createWriteStream(filename);
+
+  // send a status update
+
+  // pipe the audiostream, ogg stream and writestream together, once audiostream is finished
+  // pipeline(audioStream, oggStream, out, async (err) => {
+  //   if (err)
+  //     return console.warn(
+  //       `❌ Error recording file ${filename} - ${err.message}`
+  //     );
+
+  //   console.log(`✅ Recorded ${filename}`);
+  //   // TESTED - here we have a PCM File which when transformed to a .wav file is listen-able
+
+  // });
 }
+
 async function handlePCMFile(
   client,
   VoiceConnection,
@@ -86,11 +108,31 @@ async function handlePCMFile(
   pcmFileName
 ) {
   const mp3FileName = pcmFileName.replace(".pcm", ".mp3");
+
+  fs.stat(mp3FileName, function (err, stat) {
+    if (err == null) {
+      console.log("File exists");
+    } else if (err.code === "ENOENT") {
+      console.log("File does not exist");
+    } else {
+      console.log("Some other error: ", err.code);
+    }
+  });
   // convert the pcm file to an mp3 file
-  console.log("Converting ", pcmFileName, " -> ", mp3FileName);
+
   await convertAudioFiles(pcmFileName, mp3FileName);
   // create a read stream of the wav file
   const mp3FileStream = createReadStream(mp3FileName);
+
+  fs.stat(mp3FileName, function (err, stat) {
+    if (err == null) {
+      console.log("File exists");
+    } else if (err.code === "ENOENT") {
+      console.log("File does not exist");
+    } else {
+      console.log("Some other error: ", err.code);
+    }
+  });
   // try to do the text-to-speech
   try {
     // anti spam delay loop
@@ -134,6 +176,7 @@ async function handlePCMFile(
 
     const [keyWord, ...params] = output.split(" ");
 
+    console.log(keyWord, params);
     if (
       keyWord &&
       params[0] &&
@@ -207,6 +250,9 @@ async function processCommandQuery(
 // step two : return the last chunk
 async function speechToText(res) {
   const wholeBody = await res.text();
+
+  console.log(wholeBody);
+
   const returnData = [];
   for (const thing of wholeBody.split("\n")) {
     if (thing.includes('"text":')) {
@@ -230,40 +276,45 @@ async function speechToText(res) {
     if (a.length > b.length) return -1;
     return 0;
   });
+
+  console.log("SORTED?,", sorted);
   const output = sorted[0]?.split(", ")?.join(" ")?.toLowerCase();
   if (output.startsWith("hey ")) return output.replace("hey ", "");
   return output;
 }
 
-/**
- *
- * @param {*} infile - Name of file we have created from stream that does actually exist :
- * @param {*} outfile - Name of desired mp3 file once converted.
- * @returns
- */
 async function convertAudioFiles(infile, outfile) {
-  return new Promise((r) => {
-    /* Create ffmpeg command to convert pcm to mp3 */
-    const processD = new ffmpeg(infile);
-
-    console.log("Got process D!");
-    processD.then(
-      function (audio) {
-        audio.fnExtractSoundToMP3(outfile, async function (e, file) {
-          if (e) console.error(e);
-          // make an .wav file out of the .mp3 file
-          return r(outfile); // return the .wav file
-        });
-      },
-      function (e) {
-        if (e) console.error(e);
-      }
-    );
-    processD.catch((reason) => {
-      console.log("rejected: ", reason);
-    });
+  return new Promise((resolve, reject) => {
+    ffmpeg(infile)
+      .inputFormat("s16le") // Set input format to raw PCM
+      .inputOptions("-ar 44100") // Set input sample rate to 44100 Hz
+      .inputOptions("-ac 2") // Set input channels to stereo
+      .on("end", () => {
+        console.log(`Converted audio file saved as ${outfile}`);
+        resolve(outfile);
+      })
+      .on("error", (err) => {
+        console.error("Error converting audio file:", err);
+        reject(err);
+      })
+      .save(outfile);
   });
 }
+// async function convertAudioFiles(infile, outfile) {
+//   return await new Promise((resolve, reject) => {
+//     ffmpeg(infile)
+//       .inputOptions(["-f", "s16le", "-ar", "48k", "-ac", "1"])
+//       .save(outfile)
+//       .on("end", () => {
+//         console.log("RESOLVED!", outfile);
+//         resolve(outfile);
+//       })
+//       .on("error", (err) => {
+//         console.log("ERROR: ", err);
+//         reject(err);
+//       });
+//   });
+// }
 module.exports = {
   parseAudioData,
 };
