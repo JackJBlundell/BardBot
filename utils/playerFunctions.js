@@ -1,6 +1,14 @@
 // Import Packages
 const dcYtdl = require("discord-ytdl-core");
-const { Client, VoiceChannel, ChannelType, User } = require("discord.js");
+const {
+  Client,
+  VoiceChannel,
+  ChannelType,
+  User,
+  ButtonBuilder,
+  ActionRowBuilder,
+  ButtonStyle,
+} = require("discord.js");
 const {
   entersState,
   joinVoiceChannel,
@@ -22,6 +30,8 @@ const {
   createReadStream,
 } = require("fs");
 
+const { Emojis, audioList } = require("../utils/constants/settingsData.js");
+
 // require settingsData
 const { Color, settings } = require("./constants/settingsData");
 const { translate } = require("./language");
@@ -32,6 +42,99 @@ const { EmbedBuilder } = require("discord.js");
  * An array of valid voice channel types the bot can connect to
  */
 const validVCTypes = [ChannelType.GuildVoice, ChannelType.GuildStageVoice];
+
+async function createSuggestion(
+  channel,
+  user,
+  voiceChannel,
+  client,
+  match,
+  words
+) {
+  const confirm = new ButtonBuilder()
+    .setCustomId("confirm")
+    .setLabel("Confirm")
+    .setStyle(ButtonStyle.Success);
+
+  const row = new ActionRowBuilder().addComponents(confirm);
+
+  let m = await channel.send({
+    embeds: [
+      {
+        title: `${Emojis.music.str} Song Suggestion`,
+        color: 0xf9da16,
+        description: ` **I heard: "__${words.join(
+          " "
+        )}__**"\n\nSounds like you might need some ${match.name}, shall I **${
+          match.actionDesc
+        }**`,
+      },
+    ],
+    components: [row],
+  });
+
+  // const collectorFilter = (i) => i.user.id === m.user.id;
+  // No filter because anybody can change it...
+  try {
+    const confirmation = await m.awaitMessageComponent({
+      time: 60_000,
+    });
+
+    if (confirmation.customId === "confirm") {
+      // Trigger play
+      console.log("hey");
+
+      await confirmation.update({
+        components: [],
+        embeds: [
+          {
+            title: `${Emojis.music.str} Now Playing`,
+            color: 0xf9da16,
+            description: `**Now Playing:** __${match.name}__`,
+          },
+        ],
+      });
+
+      let queue = client.queues.get(channel.guild.id);
+
+      let connection = getVoiceConnection(channel.guild.id);
+
+      // Get music file
+      let resource = createAudioResource(
+        createReadStream(join(__dirname, "..", "assets", "music", match.url))
+      );
+
+      const player = createAudioPlayer({
+        behaviors: {
+          noSubscriber: NoSubscriberBehavior.Pause,
+        },
+      });
+
+      const newQueue = createQueue(resource, user, channel.id, voiceChannel.id);
+      client.queues.set(channel.guild.id, newQueue);
+
+      player.play(resource);
+      connection.subscribe(player);
+    } else if (confirmation.customId === "cancel") {
+      await confirmation.update({
+        content: "Action cancelled",
+        components: [],
+      });
+    }
+  } catch (e) {
+    console.log("Error: ", e);
+    await m.edit({
+      components: [],
+      embeds: [
+        {
+          title: `${Emojis.cross.str} Suggestion Cancelled`,
+          color: 0xf9da16,
+          description: `Confirmation not received within 1 minute, ignoring suggestion.`,
+        },
+      ],
+    });
+  }
+}
 
 /**
  * Joins a Voice-Channel
@@ -79,6 +182,7 @@ const joinVoiceChannelUtil = async (client, channel) => {
           ]);
           // if no error, then it was a swich
         } catch (error) {
+          console.log("DESTROY DESTROY DESTROY");
           newConnection.destroy();
         }
       }
@@ -564,4 +668,5 @@ module.exports = {
   createSong,
   queuePos,
   createQueue,
+  createSuggestion,
 };

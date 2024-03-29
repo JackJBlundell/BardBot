@@ -20,25 +20,28 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName("stop")
     .setDescription("Stops the player and listening song"),
-  execute: async (message) => {
-    const { client } = message;
-    const oldConnection = getVoiceConnection(message.channel.guild.id);
+  execute: async (
+    client,
+    args,
+    user,
+    channel,
+    voiceChannel,
+    message,
+    prefix
+  ) => {
+    const oldConnection = getVoiceConnection(channel.guild.id);
     if (!oldConnection)
-      return message
-        .reply({
-          content: translate(client, message.channel.guild.id, "NOT_CONNECTED"),
+      return channel
+        .send({
+          content: translate(client, channel.guild.id, "NOT_CONNECTED"),
         })
         .catch(() => null);
 
-    const queue = client.queues.get(message.channel.guild.id); // get the queue
+    const queue = client.queues.get(channel.guild.id); // get the queue
     if (!queue) {
-      return message
-        .reply({
-          content: translate(
-            client,
-            message.channel.guild.id,
-            "NOTHING_PLAYING"
-          ),
+      return channel
+        .send({
+          content: translate(client, channel.guild.id, "NOTHING_PLAYING"),
         })
         .catch(() => null);
     }
@@ -48,10 +51,5 @@ module.exports = {
     queue.stopped = true;
     // skip the track
     oldConnection.state.subscription.player.stop();
-
-    // response will be sent, when the queue is stopped, aka no need for sending it in here..
-    //return message.channel.send({
-    //    content: translate(client, message.channel.guild.id, "STOPPED")
-    //}).catch(() => null);
   },
 };
