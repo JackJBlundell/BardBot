@@ -6,8 +6,15 @@ const {
   createReadStream,
 } = require("fs");
 const fs = require("fs");
+const { join } = require("path");
 
-const { EndBehaviorType } = require("@discordjs/voice");
+const {
+  EndBehaviorType,
+  createAudioResource,
+  createAudioPlayer,
+  NoSubscriberBehavior,
+  getVoiceConnection,
+} = require("@discordjs/voice");
 const prism = require("prism-media");
 const fetch = require("node-fetch");
 
@@ -15,13 +22,29 @@ const ffmpegPath = require("@ffmpeg-installer/ffmpeg").path;
 const ffmpeg = require("fluent-ffmpeg");
 ffmpeg.setFfmpegPath(ffmpegPath);
 const { pipeline } = require("node:stream");
-const { AttachmentBuilder } = require("discord.js");
+const {
+  AttachmentBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ActionRowBuilder,
+} = require("discord.js");
 // util functions and settings
 const { msUnix, transformUsername, delay } = require("./botUtils");
-const { settings, Emojis } = require("./constants/settingsData");
+const {
+  settings,
+  Emojis,
+  tags,
+  audioList,
+} = require("./constants/settingsData");
 const { translate } = require("./language");
+const OpenAI = require("openai");
+const { createQueue, createSuggestion } = require("./playerFunctions");
 
 let witAI_lastcallTS = null;
+
+const openai = new OpenAI({
+  apiKey: process.env.OPEN_AI_TOKEN,
+});
 
 async function parseAudioData(client, VoiceConnection, user, channel) {
   // create the filename of it
@@ -32,7 +55,7 @@ async function parseAudioData(client, VoiceConnection, user, channel) {
   const audioStream = VoiceConnection.receiver.subscribe(user.id, {
     end: {
       behavior: EndBehaviorType.AfterSilence,
-      duration: 2000,
+      duration: 500,
     },
     highWaterMark: 1 << 16,
   });
@@ -46,7 +69,6 @@ async function parseAudioData(client, VoiceConnection, user, channel) {
 
   audioStream.pipe(opusDecoder).pipe(writeStream);
 
-  console.log(`👂 Started recording ${filename}`);
   const msg = await channel
     .send({
       content: translate(
@@ -54,7 +76,7 @@ async function parseAudioData(client, VoiceConnection, user, channel) {
         channel.guild.id,
         "NOWLISTENING",
         user.tag,
-        msUnix(Date.now() + 5_000)
+        msUnix(Date.now() + settings.listeningCooldown)
       ),
     })
     .catch(() => null);
@@ -97,6 +119,59 @@ async function parseAudioData(client, VoiceConnection, user, channel) {
   //   // TESTED - here we have a PCM File which when transformed to a .wav file is listen-able
 
   // });
+}
+
+// Function to find triggers if any and to call them out.
+function getTriggeredWords(array) {
+  let triggeredWords = [];
+  let foundTrigger = false;
+  let initiative = false;
+
+  // Iterate through the array of strings
+  for (let i = 0; i < array.length; i++) {
+    // Keywords to trigger the audio.
+    let isSuddenly = array[i].toLowerCase() === "suddenly";
+
+    let isRollForInitiative =
+      array.includes("roll") &&
+      (array.includes("initiative") || array.includes("itiative"));
+
+    console.log("IS roll?", isRollForInitiative);
+
+    let isWalkInto =
+      (array[i]?.toLowerCase() === "walk" &&
+        array[i + 1]?.toLowerCase() === "into") ||
+      (array[i]?.toLowerCase() === "walk" &&
+        array[i + 1]?.toLowerCase() === "in" &&
+        array[i + 2]?.toLowerCase() === "to") ||
+      (array[i].toLowerCase() === "you" &&
+        array[i + 1]?.toLowerCase() === "walk" &&
+        array[i + 2]?.toLowerCase() === "into") ||
+      (array[i].toLowerCase() === "you" &&
+        array[i + 1]?.toLowerCase() === "walk" &&
+        array[i + 2]?.toLowerCase() === "in" &&
+        array[i + 3]?.toLowerCase() === "to");
+
+    let isInTheDistance =
+      array[i].toLowerCase() === "in" &&
+      array[i + 1]?.toLowerCase() === "the" &&
+      array[i + 2]?.toLowerCase() === "distance";
+
+    if (isRollForInitiative) {
+      initiative = true;
+      foundTrigger = true;
+    } else if (isSuddenly || isWalkInto || isInTheDistance) {
+      foundTrigger = true;
+    }
+
+    // If trigger words have been found and current word is not a stop word ("as"), add it to the list
+    if (foundTrigger) {
+      triggeredWords.push(array[i]);
+    }
+  }
+  console.log("returning ", initiative);
+
+  return { triggeredWords, initiative };
 }
 
 async function handlePCMFile(
@@ -176,14 +251,22 @@ async function handlePCMFile(
 
     const [keyWord, ...params] = output.split(" ");
 
-    console.log(keyWord, params);
+    let { triggeredWords, initiative } = getTriggeredWords(output.split(" "));
+
+    let voiceChannel = await client.channels.fetch(
+      VoiceConnection.joinConfig.channelId
+    );
+
+    console.log("We have got initiative here:", initiative);
     if (
+      !initiative &&
       keyWord &&
       params[0] &&
       settings.validVoiceKeyWords.some(
         (x) => x.toLowerCase() == keyWord.toLowerCase()
       )
     ) {
+      // 'Bot' command called for simply running a command.
       return processCommandQuery(
         client,
         params,
@@ -193,6 +276,55 @@ async function handlePCMFile(
         msg,
         mp3FileName
       );
+    } else if (initiative) {
+      createSuggestion(
+        channel,
+        user,
+        voiceChannel,
+        client,
+        audioList.find((val) => val.name === "Boss Battle Music"),
+        triggeredWords
+      );
+    } else if (keyWord && params[0] && triggeredWords.length > 0) {
+      const command =
+        client.commands.get("suggest") ||
+        client.commands.find((c) => !!c.aliases?.includes("suggest"));
+      if (command) {
+        console.log("Executing!");
+        command.execute(
+          client,
+          triggeredWords,
+          user,
+          channel,
+          voiceChannel,
+          msg,
+          {}
+        );
+      } else {
+        console.log("Command not found here:", client.commands);
+      }
+      return;
+
+      // Ask Chat GPT Which of the tags are best...
+      // Maybe in future...
+      // const chatCompletion = await openai.chat.completions.create({
+      //   messages: [
+      //     {
+      //       role: "system",
+      //       content:
+      //         "You are a simple bot to identify relevant tags for TTRPG's, you listen to the conversation and will choose relevant themes that will determine the mood from the following tags alone: " +
+      //         tags.join(", ") +
+      //         ". You are only to return the output 'error' or return three tags such as 'urban bustling street'",
+      //     },
+      //     {
+      //       role: "user",
+      //       content:
+      //         "What 3 tags for this sentence: '" + triggeredWords.join() + "'",
+      //     },
+      //   ],
+      //   model: "gpt-3.5-turbo",
+      // });
+      // console.log(chatCompletion.choices[0]);
     }
     if (output === "hey" || output === undefined || !keyWord || !params[0]) {
       return await msg
@@ -234,15 +366,20 @@ async function processCommandQuery(
     client.commands.find(
       (c) => !!c.aliases?.includes(commandName?.toLowerCase())
     );
-  if (command && command.name !== "control")
+  if (command && command.name !== "control") {
+    console.log("Executing!");
     command.execute(
       client,
       args,
       user,
       channel,
-      await client.channels.fetch(VoiceConnection.joinConfig.channelId)
+      await client.channels.fetch(VoiceConnection.joinConfig.channelId),
+      {}
     );
+  }
   return;
+
+  client, args, user, channel, voiceChannel, message, prefix;
 }
 
 // the api now returns Unspecific amount of CHUNKS of JSON DATA
@@ -300,21 +437,7 @@ async function convertAudioFiles(infile, outfile) {
       .save(outfile);
   });
 }
-// async function convertAudioFiles(infile, outfile) {
-//   return await new Promise((resolve, reject) => {
-//     ffmpeg(infile)
-//       .inputOptions(["-f", "s16le", "-ar", "48k", "-ac", "1"])
-//       .save(outfile)
-//       .on("end", () => {
-//         console.log("RESOLVED!", outfile);
-//         resolve(outfile);
-//       })
-//       .on("error", (err) => {
-//         console.log("ERROR: ", err);
-//         reject(err);
-//       });
-//   });
-// }
+
 module.exports = {
   parseAudioData,
 };
