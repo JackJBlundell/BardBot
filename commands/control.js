@@ -3,7 +3,13 @@ const {
   VoiceConnectionStatus,
   createAudioResource,
 } = require("@discordjs/voice");
-const { PermissionsBitField, SlashCommandBuilder } = require("discord.js");
+const {
+  PermissionsBitField,
+  SlashCommandBuilder,
+  ButtonStyle,
+  ButtonBuilder,
+  ActionRowBuilder,
+} = require("discord.js");
 const { joinVoiceChannelUtil } = require("../utils/playerFunctions.js");
 const { parseAudioData } = require("../utils/speechHandler.js");
 const { settings, Emojis } = require("../utils/constants/settingsData.js");
@@ -14,8 +20,15 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName("control")
     .setDescription("Take audio-control of the Bot"),
-  async execute(message) {
-    console.log("Whatttt");
+  execute: async (
+    client,
+    args,
+    user,
+    channel,
+    voiceChannel,
+    message,
+    prefix
+  ) => {
     try {
       // User's VOice Channel Connection
       const { channel } = message.member.voice;
@@ -175,6 +188,19 @@ module.exports = {
         message.client.listenAbleUsers.delete(message.user.id);
       });
 
+      const help = new ButtonBuilder()
+        .setCustomId("donate")
+        .setLabel("Learn More")
+        .setURL("https://www.paypal.com/donate/?hosted_button_id=34K9LSDMXE4TW")
+        .setStyle(ButtonStyle.Secondary);
+
+      const donate = new ButtonBuilder()
+        .setCustomId("help")
+        .setLabel("Learn More")
+        .setStyle(ButtonStyle.Primary);
+
+      const row = new ActionRowBuilder().addComponents(help, donate);
+
       message
         .reply({
           content: translate(
@@ -186,8 +212,33 @@ module.exports = {
               .map((x) => `\`${x.name}\``)
               .join(",")
           ),
+          components: [row],
         })
         .catch(() => null);
+
+      try {
+        const confirmation = await message.awaitMessageComponent({
+          time: 60_000,
+        });
+
+        let connection = getVoiceConnection(channel.guild.id);
+
+        if (confirmation.customId === "donate") {
+        } else if (confirmation.customId === "help") {
+          message
+            .send({
+              content: translate(
+                client,
+                message.guildId,
+                "HELP",
+                prefix || process.env.DEFAULTPREFIX
+              ),
+            })
+            .catch(() => null);
+        }
+      } catch (e) {
+        console.log(e);
+      }
     } catch (e) {
       console.error(e);
       message

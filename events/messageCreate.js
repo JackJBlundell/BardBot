@@ -59,6 +59,8 @@ module.exports = async (client) => {
           });
         }
       }
+
+      console.log("EXECUTING ", message.channel);
       // client, args, user, channel, voiceChannel, message, prefix
       command.execute(
         client,
@@ -72,19 +74,62 @@ module.exports = async (client) => {
     }
   });
 
-  client.on("interactionCreate", async (interaction) => {
-    const command = client.commands.get(interaction.commandName);
-
-    if (!command) return;
-
+  client.on("interactionCreate", async (message) => {
+    if (message.isButton()) return message.deferUpdate();
+    console.log("Interaction recieved", message.guild, message.options);
     try {
-      await command.execute(interaction);
+      client.db.ensure(message.guildId, {
+        prefix: process.env.DEFAULTPREFIX ?? "!",
+      });
+      // get the database prefix
+      const prefix = client.db.get(message.guildId, "prefix");
+      if (!message.guild || (message.author && message.author.bot)) {
+        console.log(message.author);
+        return;
+      }
+
+      // find the right command
+      const command =
+        client.commands.get(message.commandName) ||
+        client.commands.find((c) => !!c.aliases?.includes(message.commandName));
+
+      // execute the command, if it's valid
+      if (command) {
+        if (!validMessageCommands.includes(command.name)) {
+          if (
+            client.listenAbleUsers.size > 0 &&
+            !client.listenAbleUsers.has(message.user.id)
+          ) {
+            return message.reply({
+              content: translate(
+                client,
+                message.guild,
+                "NOT_CONTROLLING",
+                prefix
+              ),
+            });
+          }
+        }
+
+        console.log("EXECUTING ");
+        // client, args, user, channel, voiceChannel, message, prefix
+
+        return await command.execute(
+          client,
+          [],
+          message.author,
+          message.channel,
+          message.member.voice.channel,
+          message,
+          prefix
+        );
+      }
     } catch (error) {
       console.error(error);
-      await interaction.reply({
-        content: "There was an error while executing this command!",
-        ephemeral: true,
-      });
+      // await message.reply({
+      //   content: "There was an error while executing this command!",
+      //   ephemeral: true,
+      // });
     }
   });
 };

@@ -1,18 +1,18 @@
 # Voice Controlled Discord Bot
 
-This repository is for the 5th Hackathon of Documatic.
-With that Project I am aiming to place `#1` and win 50€
+This repository is for BardBot - A Discord Bot to automate TTRPG music/ambience.
 
-![Banner](https://imgur.com/ZCuO0KT.gif)
+Utilizing Wit.AI, BardBot will listen to your DM for common phrases such as 'You walk into {description}', or 'roll for initiative' to suggest the best audio for the moment.
+
+Don't like the selection? Easily pick another using the dropdown menu.
+
+![Banner](assets/banner.jpg)
 
 # About
 
-It is a voice controlled Discord Bot, means you (mainly) do not use prefix / Slash Commands, no! You will be using your VOICE.
+It is a voice controlled Discord Bot, which means you can use both your voice as well as slash commands.
 
-Ofc. you somehow need to parse that audio, for that I am using https://wit.ai which is a free speech-to-text ai, which you need to train!
-That means it might sometimes not return what you say... but I tested it over 19 months on another Project, and there it works 100% everytime, even multilangual now..
-
-It is a Music Bot, as other interactions are not that optimal, like kick / ban, you can't control that with voice 100% sure...
+You will need to train Wit.AI at https://wit.ai, in order to understand your language best. Sometimes it may not be fully accurate until trained rigorously.
 
 [Check out the **Show-off and Tutorial Video**](https://github.com/Tomato6966/voice-controlled-discord-bot/blob/main/README.md#explanation-and-show-off-video)
 
@@ -40,7 +40,15 @@ It is a Music Bot, as other interactions are not that optimal, like kick / ban, 
 0.  _[Join the testing Server](https://discord.gg/TWRJH6ACvR) - Prefix: `v!`_ / [self-host it!](https://github.com/Tomato6966/voice-controlled-discord-bot/blob/main/README.md#self-hosting)
 1.  Join a Discord Voice-Channel, _in a Server, where the Bot is in!_
 2.  Type in a Text-Channel `/control` or `@Bot control`
-    a. _Now it'll only listen and be controlable by YOU_ 3. You may use voice commands like so, at a basic level:
+    a. _Now it'll only listen and be controlable by YOU_
+3.  BardBot will listen to your voice channel for key phrases (in bold) to suggest relevant audio.
+    a. **Examples**:
+    i. `**You walk into** a hustling and bustling city`
+    ii. `**In the distance** you seen the sunrise`
+    iii. `**Suddenly** the room fills with an ominous mist`
+    iv. `**Roll for initiative**`
+    v. `**A new day begins**`
+4.  You may use voice commands like so, at a basic level:
     a. **Examples**:
     i. `bot play shape of you`
     ii. `bot play thunder`
@@ -48,29 +56,9 @@ It is a Music Bot, as other interactions are not that optimal, like kick / ban, 
     iv. `bot nightcore` _=Audio-Filter_
     v. `bot skip`
     vi. `bot stop`
-3.  You may use voice commands like so, at a basic level:
-    a. **Examples**:
-    i. `bot play shape of you`
-    ii. `bot play thunder`
-    iii. `bot play despacito`
-    iv. `bot nightcore` _=Audio-Filter_
-    v. `bot skip`
-    vi. `bot stop`
-4.  Tipps to get understood more often!
+5.  Tips to get understood more often!
     a. Make sure to talk in a normal speed and loudness, do not scream or errape
     b. Also Make sure to Reduce background noices, speak clear and fluently to be "recogniced" by the bot pretty well!
-
-# Self-Hosting
-
-1. Download the repo | [Click-here](https://github.com/Tomato6966/voice-controlled-discord-bot/archive/refs/heads/main.zip)
-   - or: `git clone https://github.com/Tomato6966/voice-controlled-discord-bot`
-2. Rename `example.env` to `.env` and fill out the variables _(get wit.ai `Server Access Token` from [wit.ai](https://wit.ai))_
-3. `yarn install` / `npm install` (make sure you have `rust` & `nodejs` on your system)
-4. Type `node index.js` / `npm start`
-
-## Want to add more music commands?
-
-Take a look at my Light-Music-Bot Project, which is similar to this one (for the music system) https://github.com/Tomato6966/light-music-bot
 
 # Resources used (modules & credits)
 
@@ -79,18 +67,3 @@ Take a look at my Light-Music-Bot Project, which is similar to this one (for the
 - `@discordjs/voice`, `@discordjs/opus`, `discord-ytdl-core`, `ytdl-core`, `youtube-sr`, `ffmpeg`, `libsodium-wrappers` for the Music System (Its similar to [my light-music-bot](https://github.com/Tomato6966/light-music-bot))
 - `ffmpeg`, `prism-media`, `node-crc` for parsing / Piping / Transforming Audio Streams, -Buffers and -Files.
 - `dotenv` for allowing to use .env ENVIRONMENT Variables
-
-# Explanation and show off Video
-
-https://user-images.githubusercontent.com/68145571/181937812-b8602b54-5f68-48cf-b85d-c076092b606a.mp4
-
-# ~~ToDo~~
-
-- ✅ (28/07/2022 20:17) Change Message Responses from the voice-command, to VOICE-RESPONSES (Bot speaks it)
-  - Announce Songs: "Now playing XYZ"
-  - also for Skip: "Skipping the current Track"
-- ✅ (27/07/2022 18:23) Make the structure better, and fix all bugs
-- ✅ (27/07/2022 18:23) Add all to a .env file, and create an example.env file
-- ✅ (27/07/2022 18:23) Adjust the Settings
-- ✅ (27/07/2022 18:23) Make it multi langual without any modules
-- ✅ (27/07/2022 18:23) Try to make it even faster ;)

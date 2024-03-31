@@ -4,6 +4,7 @@ const {
   createSong,
   queuePos,
   createSuggestion,
+  findBestMatch,
 } = require("../utils/playerFunctions.js");
 
 const { join } = require("path");
@@ -25,24 +26,6 @@ const {
 const { createReadStream } = require("fs");
 
 const { Emojis, audioList } = require("../utils/constants/settingsData.js");
-
-// Function to select best audio match based on words spoken...
-function findBestMatch(triggeredWords) {
-  let bestMatch = undefined;
-  let maxMatches = 0;
-
-  audioList.forEach((audio) => {
-    const matches = audio.tags.filter((tag) =>
-      triggeredWords.includes(tag)
-    ).length;
-    if (matches > maxMatches) {
-      maxMatches = matches;
-      bestMatch = audio;
-    }
-  });
-
-  return bestMatch;
-}
 
 module.exports = {
   name: "suggest",
@@ -72,7 +55,16 @@ module.exports = {
       let match = findBestMatch(args);
 
       if (match) {
-        createSuggestion(channel, user, voiceChannel, client, match, args);
+        createSuggestion(
+          channel,
+          user,
+          voiceChannel,
+          client,
+          match,
+          args,
+          message
+        );
+        return;
       }
     } catch (e) {
       console.error(e);

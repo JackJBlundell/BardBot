@@ -20,7 +20,7 @@ module.exports = {
   ) => {
     channel
       .send({
-        content: translate(client, channel.guild.id, "PING", client.ws.ping),
+        content: translate(client, message.guildId, "PING", client.ws.ping),
       })
       .catch(() => null);
   },

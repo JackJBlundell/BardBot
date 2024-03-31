@@ -23,19 +23,21 @@ module.exports = {
     message,
     prefix
   ) => {
-    const oldConnection = getVoiceConnection(channel.guild.id);
+    let guildId = message.guildId ? message.guildId : channel.guild.id;
+
+    const oldConnection = getVoiceConnection(guildId);
     if (!oldConnection)
-      return channel
-        .send({
-          content: translate(client, channel.guild.id, "NOT_CONNECTED"),
+      return message
+        .edit({
+          content: translate(client, guildId, "NOT_CONNECTED"),
         })
         .catch(() => null);
 
-    const queue = client.queues.get(channel.guild.id); // get the queue
+    const queue = client.queues.get(guildId); // get the queue
     if (!queue) {
       return channel
         .send({
-          content: translate(client, channel.guild.id, "NOTHING_PLAYING"),
+          content: translate(client, guildId, "NOTHING_PLAYING"),
         })
         .catch(() => null);
     }
@@ -47,7 +49,7 @@ module.exports = {
     ) {
       return channel
         .send({
-          content: translate(client, channel.guild.id, "INVALID_VOL"),
+          content: translate(client, guildId, "INVALID_VOL"),
         })
         .catch(() => null);
     }
@@ -60,7 +62,7 @@ module.exports = {
 
     return channel
       .send({
-        content: translate(client, channel.guild.id, "VOLUME", queue.volume),
+        content: translate(client, guildId, "VOLUME", queue.volume),
       })
       .catch(() => null);
   },

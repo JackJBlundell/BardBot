@@ -7,7 +7,10 @@ const {
   User,
   ButtonBuilder,
   ActionRowBuilder,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
   ButtonStyle,
+  ComponentType,
 } = require("discord.js");
 const {
   entersState,
@@ -49,42 +52,59 @@ async function createSuggestion(
   voiceChannel,
   client,
   match,
-  words
+  words,
+  message
 ) {
   const confirm = new ButtonBuilder()
     .setCustomId("confirm")
-    .setLabel("Confirm")
+    .setLabel("▶️ Play")
     .setStyle(ButtonStyle.Success);
 
-  const row = new ActionRowBuilder().addComponents(confirm);
+  const different = new ButtonBuilder()
+    .setCustomId("different")
+    .setLabel("Select Audio")
+    .setStyle(ButtonStyle.Secondary);
 
-  let m = await channel.send({
+  const row = new ActionRowBuilder().addComponents(confirm, different);
+  let m;
+
+  m = await channel.send({
     embeds: [
       {
-        title: `${Emojis.music.str} Song Suggestion`,
+        title: `${Emojis.music.str} Audio Suggestion`,
         color: 0xf9da16,
-        description: ` **I heard: "__${words.join(
-          " "
-        )}__**"\n\nSounds like you might need some ${match.name}, shall I **${
-          match.actionDesc
-        }**`,
+        description:
+          words.length > 0
+            ? ` **I heard: "__${words.join(
+                " "
+              )}__**"\n\nSounds like you might need some ${
+                match.name
+              }, shall I **${match.actionDesc}**`
+            : `Sounds like you might need some ${match.name}, shall I **${match.actionDesc}**`,
       },
     ],
     components: [row],
   });
 
-  // const collectorFilter = (i) => i.user.id === m.user.id;
-  // No filter because anybody can change it...
   try {
     const confirmation = await m.awaitMessageComponent({
       time: 60_000,
     });
 
+    let connection = getVoiceConnection(channel.guild.id);
+
     if (confirmation.customId === "confirm") {
+      const stop = new ButtonBuilder()
+        .setCustomId("stop")
+        .setLabel("Stop")
+        .setStyle(ButtonStyle.Danger);
+
+      const row = new ActionRowBuilder().addComponents(stop, different);
+
       // Trigger play
       console.log("hey");
 
-      await confirmation.update({
+      await m.edit({
         components: [],
         embeds: [
           {
@@ -93,11 +113,10 @@ async function createSuggestion(
             description: `**Now Playing:** __${match.name}__`,
           },
         ],
+        components: [row],
       });
 
       let queue = client.queues.get(channel.guild.id);
-
-      let connection = getVoiceConnection(channel.guild.id);
 
       // Get music file
       let resource = createAudioResource(
@@ -115,11 +134,127 @@ async function createSuggestion(
 
       player.play(resource);
       connection.subscribe(player);
-    } else if (confirmation.customId === "cancel") {
+
+      const confirmation2 = await m.awaitMessageComponent({
+        time: 60_000,
+      });
+      if (confirmation2.customId === "stop") {
+        connection.state.subscription.player.stop();
+
+        await m.edit({
+          components: [],
+          embeds: [
+            {
+              title: `${Emojis.cross.str} Stopped Playing`,
+              color: 0xf9da16,
+              description: `I have stopped playing music.`,
+            },
+          ],
+        });
+      } else if (confirmation2.customId === "different") {
+        const selectMenu = new StringSelectMenuBuilder()
+          .setCustomId("select")
+          .setPlaceholder("Select Audio");
+
+        audioList.map((val, index) => {
+          selectMenu.addOptions(
+            new StringSelectMenuOptionBuilder()
+              .setLabel(val.name)
+              .setValue(val.id)
+              .setDescription(val.actionDesc)
+          );
+        });
+
+        const row = new ActionRowBuilder().addComponents(selectMenu);
+
+        m.edit({
+          embeds: [
+            {
+              title: `${Emojis.music.str} Audio Suggestion`,
+              color: 0xf9da16,
+              description: ` **I heard: "__${words.join(
+                " "
+              )}__**"\n\nSounds like you might need some ${
+                match.name
+              }, shall I **${match.actionDesc}**`,
+            },
+          ],
+          components: [row],
+        });
+
+        const collector = m.createMessageComponentCollector({
+          componentType: ComponentType.StringSelect,
+          time: 3_600_000,
+        });
+
+        collector.on("collect", async (i) => {
+          i.deferUpdate();
+          const selection = i.values[0];
+
+          createSuggestion(
+            channel,
+            user,
+            voiceChannel,
+            client,
+            audioList.find((val) => val.id === selection),
+            [],
+            m
+          );
+        });
+      }
+    } else if (confirmation.customId === "stop") {
       await confirmation.update({
         content: "Action cancelled",
         components: [],
       });
+    } else if (confirmation.customId === "different") {
+      const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId("select")
+        .setPlaceholder("Select Audio");
+
+      audioList.map((val, index) => {
+        selectMenu.addOptions(
+          new StringSelectMenuOptionBuilder()
+            .setLabel(val.name)
+            .setValue(val.id)
+            .setDescription(val.actionDesc)
+        );
+      });
+
+      const row = new ActionRowBuilder().addComponents(selectMenu);
+
+      m.edit({
+        embeds: [
+          {
+            title: `${Emojis.think.str} Select Audio`,
+            color: 0xf9da16,
+            description: ` **I have a few ditties lined up for you down below.**`,
+          },
+        ],
+        components: [row],
+      });
+
+      const collector = m.createMessageComponentCollector({
+        componentType: ComponentType.StringSelect,
+        time: 3_600_000,
+      });
+
+      collector.on("collect", async (i) => {
+        i.deferUpdate();
+        console.log("YOYOYO", m);
+        const selection = i.values[0];
+
+        createSuggestion(
+          channel,
+          user,
+          voiceChannel,
+          client,
+          audioList.find((val) => val.id === selection),
+          [],
+          m
+        );
+      });
+    } else if (confirmation.customId === "select") {
     }
   } catch (e) {
     console.log("Error: ", e);
@@ -134,6 +269,9 @@ async function createSuggestion(
       ],
     });
   }
+
+  // const collectorFilter = (i) => i.user.id === m.user.id;
+  // No filter because anybody can change it...
 }
 
 /**
@@ -451,17 +589,17 @@ async function handleQueue(client, player, queue) {
                 return player.play(createAudioResource(track.resource));
             }
 
-            // get the bot's voice Connection
-            const meChannel = client.guilds.cache.get(queue.guildId)?.members
-              ?.me?.voice?.channel;
-            if (meChannel) leaveVoiceChannel(meChannel);
-            else {
-              // else fetch the voicechannel and leave it
-              const vc = await client.channels
-                .fetch(queue.voiceChannel)
-                .catch(() => null);
-              if (vc) leaveVoiceChannel(vc);
-            }
+            // // get the bot's voice Connection
+            // const meChannel = client.guilds.cache.get(queue.guildId)?.members
+            //   ?.me?.voice?.channel;
+            // if (meChannel) leaveVoiceChannel(meChannel);
+            // else {
+            //   // else fetch the voicechannel and leave it
+            //   const vc = await client.channels
+            //     .fetch(queue.voiceChannel)
+            //     .catch(() => null);
+            //   if (vc) leaveVoiceChannel(vc);
+            // }
 
             // send a status update if possible
             const textChannel = await client.channels
@@ -477,38 +615,38 @@ async function handleQueue(client, player, queue) {
           }
           queue.tracks = [];
           // Queue Empty, do this
-          const textChannel = await client.channels
-            .fetch(queue.textChannel)
-            .catch(() => null);
-          if (textChannel) {
-            textChannel
-              .send({
-                content: translate(
-                  client,
-                  textChannel.guildId,
-                  "QUEUE_EMPTY",
-                  msUnix(Date.now() + settings.leaveEmptyVC)
-                ),
-              })
-              .catch(console.warn);
-          }
-          setTimeout(async () => {
-            const nqueue = client.queues.get(queue.guildId);
-            if (!nqueue?.tracks?.length) {
-              // get the bot's voice Connection
-              const meChannel = client.guilds.cache.get(queue.guildId)?.members
-                ?.me?.voice?.channel;
-              if (meChannel) leaveVoiceChannel(meChannel);
-              else {
-                // else fetch the voicechannel and leave it
-                const vc = await client.channels
-                  .fetch(queue.voiceChannel)
-                  .catch(() => null);
-                if (vc) leaveVoiceChannel(vc);
-              }
-            } else console.log(nqueue);
-            return;
-          }, settings.leaveEmptyVC);
+          // const textChannel = await client.channels
+          //   .fetch(queue.textChannel)
+          //   .catch(() => null);
+          // if (textChannel) {
+          //   textChannel
+          //     .send({
+          //       content: translate(
+          //         client,
+          //         textChannel.guildId,
+          //         "QUEUE_EMPTY",
+          //         msUnix(Date.now() + settings.leaveEmptyVC)
+          //       ),
+          //     })
+          //     .catch(console.warn);
+          // }
+          // setTimeout(async () => {
+          //   const nqueue = client.queues.get(queue.guildId);
+          //   if (!nqueue?.tracks?.length) {
+          //     // get the bot's voice Connection
+          //     const meChannel = client.guilds.cache.get(queue.guildId)?.members
+          //       ?.me?.voice?.channel;
+          //     if (meChannel) leaveVoiceChannel(meChannel);
+          //     else {
+          //       // else fetch the voicechannel and leave it
+          //       const vc = await client.channels
+          //         .fetch(queue.voiceChannel)
+          //         .catch(() => null);
+          //       if (vc) leaveVoiceChannel(vc);
+          //     }
+          //   } else console.log(nqueue);
+          //   return;
+          // }, settings.leaveEmptyVC);
         }
       } else {
         // get the bot's voice Connection
@@ -654,6 +792,25 @@ const createQueue = (song, user, channelId, voiceChannel, bitrate = 128) => {
     bitrate: bitrate,
   };
 };
+
+// Function to select best audio match based on words spoken...
+function findBestMatch(triggeredWords) {
+  let bestMatch = undefined;
+  let maxMatches = 0;
+
+  audioList.forEach((audio) => {
+    const matches = audio.tags.filter((tag) =>
+      triggeredWords.includes(tag)
+    ).length;
+    if (matches > maxMatches) {
+      maxMatches = matches;
+      bestMatch = audio;
+    }
+  });
+
+  return bestMatch;
+}
+
 module.exports = {
   validVCTypes,
   joinVoiceChannelUtil,
@@ -669,4 +826,5 @@ module.exports = {
   queuePos,
   createQueue,
   createSuggestion,
+  findBestMatch,
 };

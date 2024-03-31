@@ -8,6 +8,7 @@ module.exports = {
   skip: getEmoji("⏭️"),
   empty: getEmoji("🤖"),
   music: getEmoji("🎻"),
+  think: getEmoji("🤔"),
 };
 function getEmoji(str) {
   str = str.trim();
