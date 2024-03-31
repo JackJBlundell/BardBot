@@ -126,6 +126,7 @@ function getTriggeredWords(array) {
   let triggeredWords = [];
   let foundTrigger = false;
   let initiative = false;
+  let newDay = false;
 
   // Iterate through the array of strings
   for (let i = 0; i < array.length; i++) {
@@ -136,29 +137,19 @@ function getTriggeredWords(array) {
       array.includes("roll") &&
       (array.includes("initiative") || array.includes("itiative"));
 
-    console.log("IS roll?", isRollForInitiative);
+    let isNewDay = array.includes("new") && array.includes("day");
 
-    let isWalkInto =
-      (array[i]?.toLowerCase() === "walk" &&
-        array[i + 1]?.toLowerCase() === "into") ||
-      (array[i]?.toLowerCase() === "walk" &&
-        array[i + 1]?.toLowerCase() === "in" &&
-        array[i + 2]?.toLowerCase() === "to") ||
-      (array[i].toLowerCase() === "you" &&
-        array[i + 1]?.toLowerCase() === "walk" &&
-        array[i + 2]?.toLowerCase() === "into") ||
-      (array[i].toLowerCase() === "you" &&
-        array[i + 1]?.toLowerCase() === "walk" &&
-        array[i + 2]?.toLowerCase() === "in" &&
-        array[i + 3]?.toLowerCase() === "to");
+    let isWalkInto = array.includes("walk") && array.includes("into");
 
     let isInTheDistance =
-      array[i].toLowerCase() === "in" &&
-      array[i + 1]?.toLowerCase() === "the" &&
-      array[i + 2]?.toLowerCase() === "distance";
+      (array.includes("in") && array.includes("distance")) ||
+      (array.includes("the") && array.includes("distance"));
 
     if (isRollForInitiative) {
       initiative = true;
+      foundTrigger = true;
+    } else if (isNewDay) {
+      newDay = true;
       foundTrigger = true;
     } else if (isSuddenly || isWalkInto || isInTheDistance) {
       foundTrigger = true;
@@ -171,7 +162,7 @@ function getTriggeredWords(array) {
   }
   console.log("returning ", initiative);
 
-  return { triggeredWords, initiative };
+  return { triggeredWords, initiative, newDay };
 }
 
 async function handlePCMFile(
@@ -240,18 +231,26 @@ async function handlePCMFile(
     mp3FileStream.destroy();
 
     // delete the temp files
+
     try {
-      unlinkSync(pcmFileName);
-    } catch {}
-    try {
-      unlinkSync(mp3FileName);
-    } catch {}
+      fs.readdir("directory", (err, files) => {
+        if (err) throw err;
+
+        for (const file of files) {
+          fs.unlink(join(directory, file), (err) => {
+            if (err) throw err;
+          });
+        }
+      });
+    } catch (err) {}
 
     if (!output?.length) return;
 
     const [keyWord, ...params] = output.split(" ");
 
-    let { triggeredWords, initiative } = getTriggeredWords(output.split(" "));
+    let { triggeredWords, initiative, newDay } = getTriggeredWords(
+      output.split(" ")
+    );
 
     let voiceChannel = await client.channels.fetch(
       VoiceConnection.joinConfig.channelId
@@ -282,8 +281,19 @@ async function handlePCMFile(
         user,
         voiceChannel,
         client,
-        audioList.find((val) => val.name === "Boss Battle Music"),
-        triggeredWords
+        audioList.find((val) => val.id === "boss"),
+        triggeredWords,
+        undefined
+      );
+    } else if (newDay) {
+      createSuggestion(
+        channel,
+        user,
+        voiceChannel,
+        client,
+        audioList.find((val) => val.id === "adventuring"),
+        triggeredWords,
+        undefined
       );
     } else if (keyWord && params[0] && triggeredWords.length > 0) {
       const command =

@@ -31,19 +31,19 @@ module.exports = {
     message,
     prefix
   ) => {
-    const oldConnection = getVoiceConnection(channel.guild.id);
+    const oldConnection = getVoiceConnection(message.guildId);
     if (!oldConnection)
       return channel
         .send({
-          content: translate(client, channel.guild.id, "NOT_CONNECTED"),
+          content: translate(client, message.guildId, "NOT_CONNECTED"),
         })
         .catch(() => null);
 
-    const queue = client.queues.get(channel.guild.id); // get the queue
+    const queue = client.queues.get(message.guildId); // get the queue
     if (!queue) {
       return channel
         .send({
-          content: translate(client, channel.guild.id, "NOTHING_PLAYING"),
+          content: translate(client, message.guildId, "NOTHING_PLAYING"),
         })
         .catch(() => null);
     }

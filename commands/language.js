@@ -62,6 +62,7 @@ module.exports = {
           time: 60_000,
         });
         collector.on("collect", async (i) => {
+          i.deferUpdate();
           const newlang = i.customId.split("_")[1];
           client.db.set(message.guildId, newlang, "language");
           i.update({

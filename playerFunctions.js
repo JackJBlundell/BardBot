@@ -340,39 +340,39 @@ async function handleQueue(client, player, queue) {
             return;
           }
           queue.tracks = [];
-          // Queue Empty, do this
-          const textChannel = await client.channels
-            .fetch(queue.textChannel)
-            .catch(() => null);
-          if (textChannel) {
-            textChannel
-              .send({
-                content: translate(
-                  client,
-                  textChannel.guildId,
-                  "QUEUE_EMPTY",
-                  msUnix(Date.now() + settings.leaveEmptyVC)
-                ),
-              })
-              .catch(console.warn);
-          }
-          setTimeout(async () => {
-            const nqueue = client.queues.get(queue.guildId);
-            if (!nqueue?.tracks?.length) {
-              // get the bot's voice Connection
-              const meChannel = client.guilds.cache.get(queue.guildId)?.members
-                ?.me?.voice?.channel;
-              if (meChannel) leaveVoiceChannel(meChannel);
-              else {
-                // else fetch the voicechannel and leave it
-                const vc = await client.channels
-                  .fetch(queue.voiceChannel)
-                  .catch(() => null);
-                if (vc) leaveVoiceChannel(vc);
-              }
-            } else console.log(nqueue);
-            return;
-          }, settings.leaveEmptyVC);
+          // Don't print queue is empty and don't leave like this!
+          // const textChannel = await client.channels
+          //   .fetch(queue.textChannel)
+          //   .catch(() => null);
+          // if (textChannel) {
+          //   textChannel
+          //     .send({
+          //       content: translate(
+          //         client,
+          //         textChannel.guildId,
+          //         "QUEUE_EMPTY",
+          //         msUnix(Date.now() + settings.leaveEmptyVC)
+          //       ),
+          //     })
+          //     .catch(console.warn);
+          // }
+          // setTimeout(async () => {
+          //   const nqueue = client.queues.get(queue.guildId);
+          //   if (!nqueue?.tracks?.length) {
+          //     // get the bot's voice Connection
+          //     const meChannel = client.guilds.cache.get(queue.guildId)?.members
+          //       ?.me?.voice?.channel;
+          //     if (meChannel) leaveVoiceChannel(meChannel);
+          //     else {
+          //       // else fetch the voicechannel and leave it
+          //       const vc = await client.channels
+          //         .fetch(queue.voiceChannel)
+          //         .catch(() => null);
+          //       if (vc) leaveVoiceChannel(vc);
+          //     }
+          //   } else console.log(nqueue);
+          //   return;
+          // }, settings.leaveEmptyVC);
         }
       } else {
         // get the bot's voice Connection
@@ -528,6 +528,7 @@ const createQueue = (song, user, channelId, voiceChannel, bitrate = 128) => {
     bitrate: bitrate,
   };
 };
+
 module.exports = {
   validVCTypes,
   joinVoiceChannelUtil,

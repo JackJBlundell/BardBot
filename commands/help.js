@@ -22,7 +22,7 @@ module.exports = {
       .send({
         content: translate(
           client,
-          channel.guild.id,
+          message.guildId,
           "HELP",
           prefix || process.env.DEFAULTPREFIX
         ),
