@@ -7,11 +7,11 @@ module.exports = async (client) => {
   client.on("messageCreate", async (message) => {
     if (!message.guild || message.author.bot) return;
     // ensure the Database
-    client.db.ensure(message.guildId, {
-      prefix: process.env.DEFAULTPREFIX ?? "!",
-    });
+    // client.db.ensure(message.guildId, {
+    //   prefix: process.env.DEFAULTPREFIX ?? "!",
+    // });
     // get the database prefix
-    const prefix = client.db.get(message.guildId, "prefix");
+    const prefix = "v!";
     // prefix regex for matching the message content
     const prefixRegex = new RegExp(
       `^(<@!?${client.user.id}>|${escapeRegex(prefix)})\\s*`
@@ -78,11 +78,11 @@ module.exports = async (client) => {
     if (message.isButton()) return message.deferUpdate();
     console.log("Interaction recieved", message.guild, message.options);
     try {
-      client.db.ensure(message.guildId, {
-        prefix: process.env.DEFAULTPREFIX ?? "!",
-      });
+      // client.db.ensure(message.guildId, {
+      //   prefix: process.env.DEFAULTPREFIX ?? "!",
+      // });
       // get the database prefix
-      const prefix = client.db.get(message.guildId, "prefix");
+      const prefix = "v!";
       if (!message.guild || (message.author && message.author.bot)) {
         console.log(message.author);
         return;

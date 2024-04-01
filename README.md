@@ -67,3 +67,15 @@ You will need to train Wit.AI at https://wit.ai, in order to understand your lan
 - `@discordjs/voice`, `@discordjs/opus`, `discord-ytdl-core`, `ytdl-core`, `youtube-sr`, `ffmpeg`, `libsodium-wrappers` for the Music System (Its similar to [my light-music-bot](https://github.com/Tomato6966/light-music-bot))
 - `ffmpeg`, `prism-media`, `node-crc` for parsing / Piping / Transforming Audio Streams, -Buffers and -Files.
 - `dotenv` for allowing to use .env ENVIRONMENT Variables
+
+# AWS
+
+Make sure to npm install linux ffmpeg when deploying to lambda:
+
+npm install @ffmpeg-installer/linux-x64 --force
+
+but Not local!
+
+<!-- We have this right now but will change to docker -->
+
+npm install --arch=x64 --platform=linux --target=8.10.0 sharp

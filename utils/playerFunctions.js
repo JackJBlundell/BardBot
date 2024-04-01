@@ -119,9 +119,7 @@ async function createSuggestion(
       let queue = client.queues.get(channel.guild.id);
 
       // Get music file
-      let resource = createAudioResource(
-        createReadStream(join(__dirname, "..", "assets", "music", match.url))
-      );
+      let resource = createAudioResource(match.url);
 
       const player = createAudioPlayer({
         behaviors: {
