@@ -10,8 +10,3 @@ logs/
 
 # Ignore npm-debug.log*
 npm-debug.log*
-
-# Ignore temp files if any
-temp/
-
-assets/music
