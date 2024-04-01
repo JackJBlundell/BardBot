@@ -104,101 +104,110 @@ async function createSuggestion(
       // Trigger play
       console.log("hey");
 
-      await m.edit({
-        components: [],
-        embeds: [
-          {
-            title: `${Emojis.music.str} Now Playing`,
-            color: 0xf9da16,
-            description: `**Now Playing:** __${match.name}__`,
-          },
-        ],
-        components: [row],
-      });
-
-      let queue = client.queues.get(channel.guild.id);
-
-      // Get music file
-      let resource = createAudioResource(match.url);
-
-      const player = createAudioPlayer({
-        behaviors: {
-          noSubscriber: NoSubscriberBehavior.Pause,
-        },
-      });
-
-      const newQueue = createQueue(resource, user, channel.id, voiceChannel.id);
-      client.queues.set(channel.guild.id, newQueue);
-
-      player.play(resource);
-      connection.subscribe(player);
-
-      const confirmation2 = await m.awaitMessageComponent({
-        time: 60_000,
-      });
-      if (confirmation2.customId === "stop") {
-        connection.state.subscription.player.stop();
-
+      try {
         await m.edit({
           components: [],
           embeds: [
             {
-              title: `${Emojis.cross.str} Stopped Playing`,
+              title: `${Emojis.music.str} Now Playing`,
               color: 0xf9da16,
-              description: `I have stopped playing music.`,
-            },
-          ],
-        });
-      } else if (confirmation2.customId === "different") {
-        const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId("select")
-          .setPlaceholder("Select Audio");
-
-        audioList.map((val, index) => {
-          selectMenu.addOptions(
-            new StringSelectMenuOptionBuilder()
-              .setLabel(val.name)
-              .setValue(val.id)
-              .setDescription(val.actionDesc)
-          );
-        });
-
-        const row = new ActionRowBuilder().addComponents(selectMenu);
-
-        m.edit({
-          embeds: [
-            {
-              title: `${Emojis.music.str} Audio Suggestion`,
-              color: 0xf9da16,
-              description: ` **I heard: "__${words.join(
-                " "
-              )}__**"\n\nSounds like you might need some ${
-                match.name
-              }, shall I **${match.actionDesc}**`,
+              description: `**Now Playing:** __${match.name}__`,
             },
           ],
           components: [row],
         });
 
-        const collector = m.createMessageComponentCollector({
-          componentType: ComponentType.StringSelect,
-          time: 3_600_000,
+        let queue = client.queues.get(channel.guild.id);
+
+        // Get music file
+        let resource = createAudioResource(match.url);
+
+        const player = createAudioPlayer({
+          behaviors: {
+            noSubscriber: NoSubscriberBehavior.Pause,
+          },
         });
 
-        collector.on("collect", async (i) => {
-          i.deferUpdate();
-          const selection = i.values[0];
+        const newQueue = createQueue(
+          resource,
+          user,
+          channel.id,
+          voiceChannel.id
+        );
+        client.queues.set(channel.guild.id, newQueue);
 
-          createSuggestion(
-            channel,
-            user,
-            voiceChannel,
-            client,
-            audioList.find((val) => val.id === selection),
-            [],
-            m
-          );
+        player.play(resource);
+        connection.subscribe(player);
+
+        const confirmation2 = await m.awaitMessageComponent({
+          time: 60_000,
         });
+        if (confirmation2.customId === "stop") {
+          connection.state.subscription.player.stop();
+
+          await m.edit({
+            components: [],
+            embeds: [
+              {
+                title: `${Emojis.cross.str} Stopped Playing`,
+                color: 0xf9da16,
+                description: `I have stopped playing music.`,
+              },
+            ],
+          });
+        } else if (confirmation2.customId === "different") {
+          const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId("select")
+            .setPlaceholder("Select Audio");
+
+          audioList.map((val, index) => {
+            selectMenu.addOptions(
+              new StringSelectMenuOptionBuilder()
+                .setLabel(val.name)
+                .setValue(val.id)
+                .setDescription(val.actionDesc)
+            );
+          });
+
+          const row = new ActionRowBuilder().addComponents(selectMenu);
+
+          m.edit({
+            embeds: [
+              {
+                title: `${Emojis.music.str} Audio Suggestion`,
+                color: 0xf9da16,
+                description: ` **I heard: "__${words.join(
+                  " "
+                )}__**"\n\nSounds like you might need some ${
+                  match.name
+                }, shall I **${match.actionDesc}**`,
+              },
+            ],
+            components: [row],
+          });
+
+          const collector = m.createMessageComponentCollector({
+            componentType: ComponentType.StringSelect,
+            time: 3_600_000,
+          });
+
+          collector.on("collect", async (i) => {
+            i.deferUpdate();
+            const selection = i.values[0];
+
+            createSuggestion(
+              channel,
+              user,
+              voiceChannel,
+              client,
+              audioList.find((val) => val.id === selection),
+              [],
+              m
+            );
+          });
+        }
+      } catch (err) {
+        console.log("ERROR IN PLAY THING: ", err);
       }
     } else if (confirmation.customId === "stop") {
       await confirmation.update({
