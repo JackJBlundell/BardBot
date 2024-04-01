@@ -46,12 +46,12 @@ module.exports = async (client) => {
     if (command) {
       console.log("Valid command");
       if (!validMessageCommands.includes(command.name)) {
-        console.log(client.listenAbleUsers);
         if (
-          client.listenAbleUsers.size > 0 &&
-          !client.listenAbleUsers.has(message.author.id) &&
-          command.name !== "control"
+          command.name === "control" &&
+          client.connectedGuilds.has(message.guild.id) &&
+          !client.listenAbleUsers.has(message.author.id)
         ) {
+          // If it is control and somebody else is connected...
           return message.reply({
             content: translate(
               client,
@@ -60,7 +60,22 @@ module.exports = async (client) => {
               prefix
             ),
           });
+        } else if (
+          command.name === "control" &&
+          client.connectedGuilds.has(message.guild.id) &&
+          client.listenAbleUsers.has(message.author.id)
+        ) {
+          // If it is control and i am already controlling
+          return message.reply({
+            content: translate(
+              client,
+              message.guild,
+              "ALREADY_CONNECTED",
+              prefix
+            ),
+          });
         }
+        // No control on my guild fam.
       }
 
       console.log("EXECUTING ", message.channel);
@@ -99,6 +114,8 @@ module.exports = async (client) => {
       // execute the command, if it's valid
       if (command) {
         if (!validMessageCommands.includes(command.name)) {
+          console.log(command.name);
+          console.log(client.listenAbleUsers);
           if (
             client.listenAbleUsers.size > 0 &&
             !client.listenAbleUsers.has(message.user.id) &&

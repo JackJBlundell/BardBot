@@ -140,6 +140,7 @@ module.exports = {
           .catch(() => null);
 
       message.client.listenAbleUsers.add(message.user.id);
+      message.client.connectedGuilds.add(message.guildId);
 
       console.log("Adding this user to listenable users:", message.user);
 
