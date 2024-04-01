@@ -62,7 +62,7 @@ async function createSuggestion(
 
   const different = new ButtonBuilder()
     .setCustomId("different")
-    .setLabel("Select Audio")
+    .setLabel("Change Audio")
     .setStyle(ButtonStyle.Secondary);
 
   const row = new ActionRowBuilder().addComponents(confirm, different);

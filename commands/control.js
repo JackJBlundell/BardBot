@@ -150,24 +150,9 @@ module.exports = {
         console.log("Speaking.", userId);
         if (
           !message.client.listenAbleUsers.has(userId) ||
-          userId !== message.user.id ||
           IsOnCooldown(userId, settings.listeningCooldown)
         ) {
-          console.log(
-            "Listenable user?",
-            message.client.listenAbleUsers.has(userId),
-
-            "Users: ",
-            message.client.listenAbleUsers,
-
-            "USer id: ",
-            userId
-          );
-          console.log("mismatch?", userId !== message.client.user.id);
-          console.log(
-            "cooldown",
-            IsOnCooldown(userId, settings.listeningCooldown)
-          );
+          console.log("NOT LISTENING!");
           return;
         }
         // use and parse the audio data from the user

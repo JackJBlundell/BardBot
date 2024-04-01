@@ -47,77 +47,55 @@ const openai = new OpenAI({
 });
 
 async function parseAudioData(client, VoiceConnection, user, channel) {
-  // create the filename of it
-  const filename = `${process.cwd()}/temp/${transformUsername(
-    user.username
-  )}_${Date.now()}.pcm`;
-  // then make a listenable audio stream, with the maximum highWaterMark (longest duration(s))
-  const audioStream = VoiceConnection.receiver.subscribe(user.id, {
-    end: {
-      behavior: EndBehaviorType.AfterSilence,
-      duration: 500,
-    },
-    highWaterMark: 1 << 16,
-  });
-  const writeStream = fs.createWriteStream(filename);
+  try {
+    // create the filename of it
+    const filename = `${process.cwd()}/temp/${transformUsername(
+      user.username
+    )}_${Date.now()}.pcm`;
+    // then make a listenable audio stream, with the maximum highWaterMark (longest duration(s))
+    const audioStream = VoiceConnection.receiver.subscribe(user.id, {
+      end: {
+        behavior: EndBehaviorType.AfterSilence,
+        duration: 500,
+      },
+      highWaterMark: 1 << 16,
+    });
+    const writeStream = fs.createWriteStream(filename);
 
-  const opusDecoder = new prism.opus.Decoder({
-    frameSize: 960,
-    channels: 2,
-    rate: 48000,
-  });
+    const opusDecoder = new prism.opus.Decoder({
+      frameSize: 960,
+      channels: 2,
+      rate: 48000,
+    });
 
-  audioStream.pipe(opusDecoder).pipe(writeStream);
+    audioStream.pipe(opusDecoder).pipe(writeStream);
 
-  // const msg = await channel
-  //   .send({
-  //     content: translate(
-  //       client,
-  //       channel.guild.id,
-  //       "NOWLISTENING",
-  //       user.tag,
-  //       msUnix(Date.now() + settings.listeningCooldown)
-  //     ),
-  //   })
-  //   .catch(() => null);
+    // const msg = await channel
+    //   .send({
+    //     content: translate(
+    //       client,
+    //       channel.guild.id,
+    //       "NOWLISTENING",
+    //       user.tag,
+    //       msUnix(Date.now() + settings.listeningCooldown)
+    //     ),
+    //   })
+    //   .catch(() => null);
 
-  writeStream.on("close", async () => {
-    // console.log("OUT finished");
+    writeStream.on("close", async () => {
+      // console.log("OUT finished");
 
-    return await handlePCMFile(
-      client,
-      VoiceConnection,
-      user,
-      channel,
-      filename
-    );
-  });
-  // create an ogglogicalbitstream piper
-  // const oggStream = new prism.opus.OggLogicalBitstream({
-  //   opusHead: new prism.opus.OpusHead({
-  //     channelCount: 2,
-  //     sampleRate: 44100,
-  //   }),
-  //   pageSizeControl: {
-  //     maxPackets: 10,
-  //   },
-  // });
-  // // and lastly the file write stream
-  // const out = createWriteStream(filename);
-
-  // send a status update
-
-  // pipe the audiostream, ogg stream and writestream together, once audiostream is finished
-  // pipeline(audioStream, oggStream, out, async (err) => {
-  //   if (err)
-  //     return console.warn(
-  //       `❌ Error recording file ${filename} - ${err.message}`
-  //     );
-
-  //   console.log(`✅ Recorded ${filename}`);
-  //   // TESTED - here we have a PCM File which when transformed to a .wav file is listen-able
-
-  // });
+      return await handlePCMFile(
+        client,
+        VoiceConnection,
+        user,
+        channel,
+        filename
+      );
+    });
+  } catch (err) {
+    console.log("Error in parsing...");
+  }
 }
 
 // Function to find triggers if any and to call them out.
@@ -164,6 +142,31 @@ function getTriggeredWords(array) {
   return { triggeredWords, initiative, newDay };
 }
 
+// Function to get 'bot play' or 'bot stop' etc. words...
+function getBotTriggeredWords(array) {
+  let triggeredWords = [];
+  let foundTrigger = false;
+
+  // Iterate through the array of strings
+  for (let i = 0; i < array.length; i++) {
+    // Keywords to trigger the audio.
+    let isBot = array[i].toLowerCase() === "bot";
+
+    if (isBot) {
+      foundTrigger = true;
+      triggeredWords = [];
+      continue;
+    }
+
+    // If trigger words have been found and current word is not a stop word ("as"), add it to the list
+    if (foundTrigger) {
+      triggeredWords.push(array[i]);
+    }
+  }
+
+  return triggeredWords;
+}
+
 async function handlePCMFile(
   client,
   VoiceConnection,
@@ -171,178 +174,160 @@ async function handlePCMFile(
   channel,
   pcmFileName
 ) {
-  const mp3FileName = pcmFileName.replace(".pcm", ".mp3");
-
-  fs.stat(mp3FileName, function (err, stat) {
-    if (err == null) {
-      console.log("File exists");
-    } else if (err.code === "ENOENT") {
-      console.log("File does not exist");
-    } else {
-      console.log("Some other error: ", err.code);
-    }
-  });
-  // convert the pcm file to an mp3 file
-
-  await convertAudioFiles(pcmFileName, mp3FileName);
-  // create a read stream of the wav file
-  const mp3FileStream = createReadStream(mp3FileName);
-
-  fs.stat(mp3FileName, function (err, stat) {
-    if (err == null) {
-      console.log("File exists");
-    } else if (err.code === "ENOENT") {
-      console.log("File does not exist");
-    } else {
-      console.log("Some other error: ", err.code);
-    }
-  });
-  // try to do the text-to-speech
   try {
-    // anti spam delay loop
-    // ensure we do not send more than one request per second
-    if (witAI_lastcallTS != null) {
-      let now = Date.now();
-      let secCounter = 0;
-      while (now - witAI_lastcallTS < 1000) {
-        await delay(100);
-        secCounter++;
-        now = Date.now();
-        if (secCounter >= 50) return;
-      }
-    }
-    // set current witAI call
-    witAI_lastcallTS = Date.now();
-    // "audio/raw;encoding=signed-integer;bits=16;rate=48k;endian=little"
-    const output = await fetch("https://api.wit.ai/speech", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.WIT_AI_ACCESS_TOKEN}`,
-        "Content-Type": "audio/mpeg3",
-      },
-      body: mp3FileStream,
-    })
-      .then((res) => speechToText(res))
-      .catch(console.error);
+    const mp3FileName = pcmFileName.replace(".pcm", ".mp3");
 
-    // stop the mp3 file reading stream
-    mp3FileStream.destroy();
+    // convert the pcm file to an mp3 file
+    await convertAudioFiles(pcmFileName, mp3FileName);
+    // create a read stream of the wav file
+    const mp3FileStream = createReadStream(mp3FileName);
 
-    // delete the temp files
-
+    // try to do the text-to-speech
     try {
-      fs.readdir("temp", (err, files) => {
-        if (err) throw err;
-
-        for (const file of files) {
-          fs.unlink(join("temp", file), (err) => {
-            if (err) throw err;
-          });
+      // anti spam delay loop
+      // ensure we do not send more than one request per second
+      if (witAI_lastcallTS != null) {
+        let now = Date.now();
+        let secCounter = 0;
+        while (now - witAI_lastcallTS < 1000) {
+          await delay(100);
+          secCounter++;
+          now = Date.now();
+          if (secCounter >= 50) return;
         }
-      });
-    } catch (err) {}
+      }
+      // set current witAI call
+      witAI_lastcallTS = Date.now();
+      // "audio/raw;encoding=signed-integer;bits=16;rate=48k;endian=little"
+      const output = await fetch("https://api.wit.ai/speech", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.WIT_AI_ACCESS_TOKEN}`,
+          "Content-Type": "audio/mpeg3",
+        },
+        body: mp3FileStream,
+      })
+        .then((res) => speechToText(res))
+        .catch(console.error);
 
-    if (!output?.length) return;
+      // stop the mp3 file reading stream
+      mp3FileStream.destroy();
 
-    const [keyWord, ...params] = output.split(" ");
+      // delete the temp files
 
-    let { triggeredWords, initiative, newDay } = getTriggeredWords(
-      output.split(" ")
-    );
+      try {
+        fs.readdir("temp", (err, files) => {
+          if (err) throw err;
 
-    let voiceChannel = await client.channels.fetch(
-      VoiceConnection.joinConfig.channelId
-    );
+          console.log(
+            "FILES OF MINE: ",
+            files.filter((val) => val.includes(user.id))
+          );
+          for (const file of files.filter((val) => val.includes(user.id))) {
+            if (file.includes(mp3FileName)) {
+              fs.unlink(join("temp", file), (err) => {
+                if (err) throw err;
+              });
+            }
+          }
+        });
+      } catch (err) {}
 
-    console.log("We have got initiative here:", initiative);
-    if (
-      !initiative &&
-      keyWord &&
-      params[0] &&
-      settings.validVoiceKeyWords.some(
-        (x) => x.toLowerCase() == keyWord.toLowerCase()
-      )
-    ) {
-      // 'Bot' command called for simply running a command.
-      return processCommandQuery(
-        client,
-        params,
-        user,
-        channel,
-        VoiceConnection,
-        mp3FileName
+      if (!output?.length) return;
+
+      // Get words after bot
+      let voice_command = getBotTriggeredWords(output.split(" "));
+
+      let { triggeredWords, initiative, newDay } = getTriggeredWords(
+        output.split(" ")
       );
-    } else if (initiative) {
-      createSuggestion(
-        channel,
-        user,
-        voiceChannel,
-        client,
-        audioList.find((val) => val.id === "boss"),
-        triggeredWords,
-        undefined
+
+      let voiceChannel = await client.channels.fetch(
+        VoiceConnection.joinConfig.channelId
       );
-    } else if (newDay) {
-      createSuggestion(
-        channel,
-        user,
-        voiceChannel,
-        client,
-        audioList.find((val) => val.id === "adventuring"),
-        triggeredWords,
-        undefined
-      );
-    } else if (keyWord && params[0] && triggeredWords.length > 0) {
-      const command =
-        client.commands.get("suggest") ||
-        client.commands.find((c) => !!c.aliases?.includes("suggest"));
-      if (command) {
-        console.log("Executing!");
-        command.execute(
+
+      console.log("We have got initiative here:", initiative);
+      if (!initiative && voice_command.length > 0) {
+        // 'Bot' command called for simply running a command.
+        return processCommandQuery(
           client,
-          triggeredWords,
+          voice_command,
           user,
           channel,
-          voiceChannel,
-          undefined,
-          {}
+          VoiceConnection,
+          mp3FileName
         );
-      } else {
-        console.log("Command not found here:", client.commands);
-      }
-      return;
+      } else if (initiative) {
+        createSuggestion(
+          channel,
+          user,
+          voiceChannel,
+          client,
+          audioList.find((val) => val.id === "boss"),
+          triggeredWords,
+          undefined
+        );
+      } else if (newDay) {
+        createSuggestion(
+          channel,
+          user,
+          voiceChannel,
+          client,
+          audioList.find((val) => val.id === "adventuring"),
+          triggeredWords,
+          undefined
+        );
+      } else if (triggeredWords.length > 0) {
+        const command =
+          client.commands.get("suggest") ||
+          client.commands.find((c) => !!c.aliases?.includes("suggest"));
+        if (command) {
+          console.log("Executing!");
+          command.execute(
+            client,
+            triggeredWords,
+            user,
+            channel,
+            voiceChannel,
+            undefined,
+            {}
+          );
+        } else {
+          console.log("Command not found here:", client.commands);
+        }
+        return;
 
-      // Ask Chat GPT Which of the tags are best...
-      // Maybe in future...
-      // const chatCompletion = await openai.chat.completions.create({
-      //   messages: [
-      //     {
-      //       role: "system",
-      //       content:
-      //         "You are a simple bot to identify relevant tags for TTRPG's, you listen to the conversation and will choose relevant themes that will determine the mood from the following tags alone: " +
-      //         tags.join(", ") +
-      //         ". You are only to return the output 'error' or return three tags such as 'urban bustling street'",
-      //     },
-      //     {
-      //       role: "user",
-      //       content:
-      //         "What 3 tags for this sentence: '" + triggeredWords.join() + "'",
-      //     },
-      //   ],
-      //   model: "gpt-3.5-turbo",
-      // });
-      // console.log(chatCompletion.choices[0]);
+        // Ask Chat GPT Which of the tags are best...
+        // Maybe in future...
+        // const chatCompletion = await openai.chat.completions.create({
+        //   messages: [
+        //     {
+        //       role: "system",
+        //       content:
+        //         "You are a simple bot to identify relevant tags for TTRPG's, you listen to the conversation and will choose relevant themes that will determine the mood from the following tags alone: " +
+        //         tags.join(", ") +
+        //         ". You are only to return the output 'error' or return three tags such as 'urban bustling street'",
+        //     },
+        //     {
+        //       role: "user",
+        //       content:
+        //         "What 3 tags for this sentence: '" + triggeredWords.join() + "'",
+        //     },
+        //   ],
+        //   model: "gpt-3.5-turbo",
+        // });
+        // console.log(chatCompletion.choices[0]);
+      }
+      // return await msg
+      //   .edit({
+      //     content: `${Emojis.cross.str} **INVALID-Input:**\n> \`\`\`${output}\`\`\`\n> Try to speak clearer and faster...`,
+      //   })
+      //   .catch(console.warn);
+    } catch (e) {
+      console.error(e);
     }
-    if (output === "hey" || output === undefined || !keyWord || !params[0]) {
-      console.log("NO understand here!");
-    }
-    // return await msg
-    //   .edit({
-    //     content: `${Emojis.cross.str} **INVALID-Input:**\n> \`\`\`${output}\`\`\`\n> Try to speak clearer and faster...`,
-    //   })
-    //   .catch(console.warn);
-  } catch (e) {
-    console.error(e);
+  } catch (err) {
+    console.log("error in PCM file");
   }
 }
 async function processCommandQuery(
