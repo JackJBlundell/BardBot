@@ -45,9 +45,11 @@ module.exports = async (client) => {
     // execute the command, if it's valid
     if (command) {
       if (!validMessageCommands.includes(command.name)) {
+        console.log(client.listenAbleUsers);
         if (
           client.listenAbleUsers.size > 0 &&
-          !client.listenAbleUsers.has(message.author.id)
+          !client.listenAbleUsers.has(message.author.id) &&
+          command.name !== "control"
         ) {
           return message.reply({
             content: translate(

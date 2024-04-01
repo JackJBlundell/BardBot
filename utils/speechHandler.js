@@ -231,8 +231,15 @@ async function handlePCMFile(
     // delete the temp files
 
     try {
-      unlinkSync(mp3FileName);
-      unlinkSync(pcmFileName);
+      fs.readdir("temp", (err, files) => {
+        if (err) throw err;
+
+        for (const file of files) {
+          fs.unlink(join("temp", file), (err) => {
+            if (err) throw err;
+          });
+        }
+      });
     } catch (err) {}
 
     if (!output?.length) return;
