@@ -55,7 +55,7 @@ module.exports = {
     // skip the track
     oldConnection.state.subscription.player.stop();
 
-    await message.reply({
+    await channel.send({
       components: [],
       embeds: [
         {

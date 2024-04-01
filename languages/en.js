@@ -61,6 +61,8 @@ module.exports = {
       `> __**"A new day begins"**__\n`,
       `__**How to Use:**__\n`,
       `You can see the full range of functionality within the __**/help**__ function. 🗣️✨\n`,
+      `__**LLM Learning / Feedback:**__\n`,
+      `Our LLM is learning, and your input helps it develop it's understanding. We'd love to hear your feedback in our official server: https://discord.gg/9Rz5BQ9n`,
       `__**Tips for the Best Experience:**__\n`,
       `Speak clearly, without pauses, and make sure the air is silent as a tomb. 🤫💬\n`,
       `__**Where the Magic Comes From:**__\n`,

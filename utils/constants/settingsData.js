@@ -287,7 +287,7 @@ const audioList = [
     id: "city",
     name: "City Ambience",
     tags: expandedTags.cityNoises,
-    url: "https://firebasestorage.googleapis.com/v0/b/bardbot-416320.appspot.com/o/music%2Fcity.mp3?alt=media&token=f0b5fff1-03fc-4e90-8f46-d2da578cb28d",
+    url: "city.mp3",
     actionDesc: "turn the hustle up?",
   },
   {
