@@ -69,27 +69,26 @@ async function parseAudioData(client, VoiceConnection, user, channel) {
 
   audioStream.pipe(opusDecoder).pipe(writeStream);
 
-  const msg = await channel
-    .send({
-      content: translate(
-        client,
-        channel.guild.id,
-        "NOWLISTENING",
-        user.tag,
-        msUnix(Date.now() + settings.listeningCooldown)
-      ),
-    })
-    .catch(() => null);
+  // const msg = await channel
+  //   .send({
+  //     content: translate(
+  //       client,
+  //       channel.guild.id,
+  //       "NOWLISTENING",
+  //       user.tag,
+  //       msUnix(Date.now() + settings.listeningCooldown)
+  //     ),
+  //   })
+  //   .catch(() => null);
 
   writeStream.on("close", async () => {
-    console.log("OUT finished");
+    // console.log("OUT finished");
 
     return await handlePCMFile(
       client,
       VoiceConnection,
       user,
       channel,
-      msg,
       filename
     );
   });
@@ -170,7 +169,6 @@ async function handlePCMFile(
   VoiceConnection,
   user,
   channel,
-  msg,
   pcmFileName
 ) {
   const mp3FileName = pcmFileName.replace(".pcm", ".mp3");
@@ -265,7 +263,6 @@ async function handlePCMFile(
         user,
         channel,
         VoiceConnection,
-        msg,
         mp3FileName
       );
     } else if (initiative) {
@@ -300,7 +297,7 @@ async function handlePCMFile(
           user,
           channel,
           voiceChannel,
-          msg,
+          undefined,
           {}
         );
       } else {
@@ -330,17 +327,13 @@ async function handlePCMFile(
       // console.log(chatCompletion.choices[0]);
     }
     if (output === "hey" || output === undefined || !keyWord || !params[0]) {
-      return await msg
-        .edit({
-          content: `${Emojis.cross.str} **I could not understand you!**\n> Try to speak clearer and faster...`,
-        })
-        .catch(console.warn);
+      console.log("NO understand here!");
     }
-    return await msg
-      .edit({
-        content: `${Emojis.cross.str} **INVALID-Input:**\n> \`\`\`${output}\`\`\`\n> Try to speak clearer and faster...`,
-      })
-      .catch(console.warn);
+    // return await msg
+    //   .edit({
+    //     content: `${Emojis.cross.str} **INVALID-Input:**\n> \`\`\`${output}\`\`\`\n> Try to speak clearer and faster...`,
+    //   })
+    //   .catch(console.warn);
   } catch (e) {
     console.error(e);
   }
@@ -351,13 +344,12 @@ async function processCommandQuery(
   user,
   channel,
   VoiceConnection,
-  msg,
   mp3FileName
 ) {
   const [commandName, ...args] = params;
 
-  await msg
-    .edit({
+  await channel
+    .send({
       content: `✅ **Your Command:**\n> \`\`\`${commandName} ${args.join(
         " "
       )}\`\`\``,
@@ -381,8 +373,6 @@ async function processCommandQuery(
     );
   }
   return;
-
-  client, args, user, channel, voiceChannel, message, prefix;
 }
 
 // the api now returns Unspecific amount of CHUNKS of JSON DATA
