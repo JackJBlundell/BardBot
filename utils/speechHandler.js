@@ -81,7 +81,7 @@ async function parseAudioData(client, VoiceConnection, user, channel) {
     })
     .catch(() => null);
 
-  writeStream.on("close", async () => {
+  writeStream.on("finish", async () => {
     console.log("OUT finished");
 
     return await handlePCMFile(
@@ -233,11 +233,11 @@ async function handlePCMFile(
     // delete the temp files
 
     try {
-      fs.readdir("directory", (err, files) => {
+      fs.readdir("temp", (err, files) => {
         if (err) throw err;
 
         for (const file of files) {
-          fs.unlink(join(directory, file), (err) => {
+          fs.unlink(join("temp", file), (err) => {
             if (err) throw err;
           });
         }

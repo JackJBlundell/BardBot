@@ -30,10 +30,8 @@ module.exports = {
     prefix
   ) => {
     try {
-      // User's VOice Channel Connection
-      const { channel } = message.member.voice;
       // if not connected, return an error
-      if (!channel)
+      if (!voiceChannel)
         return message
           .reply({
             content: translate(message.client, message.guildId, "JOIN_VC"),
@@ -57,7 +55,7 @@ module.exports = {
 
       // missing Permission for CONNECT
       if (
-        !channel
+        !voiceChannel
           .permissionsFor(message.client.user.id)
           ?.has(PermissionsBitField.Flags.Connect)
       )
@@ -73,7 +71,7 @@ module.exports = {
           .catch(() => null);
       // missing Permission for SPEAK
       if (
-        !channel
+        !voiceChannel
           .permissionsFor(message.client.user.id)
           ?.has(PermissionsBitField.Flags.Speak)
       )
@@ -91,7 +89,7 @@ module.exports = {
       //join in a voice connection
       const voiceConnection = await joinVoiceChannelUtil(
         message.client,
-        channel
+        voiceChannel
       );
 
       // Keep alive!
@@ -136,7 +134,7 @@ module.exports = {
               message.client,
               message.guildId,
               "COULD_NOT_JOIN",
-              channel.id
+              voiceChannel.id
             ),
           })
           .catch(() => null);
@@ -188,20 +186,20 @@ module.exports = {
         message.client.listenAbleUsers.delete(message.user.id);
       });
 
-      const help = new ButtonBuilder()
-        .setCustomId("donate")
-        .setLabel("Learn More")
-        .setURL("https://www.paypal.com/donate/?hosted_button_id=34K9LSDMXE4TW")
-        .setStyle(ButtonStyle.Secondary);
-
       const donate = new ButtonBuilder()
+        .setLabel("Donate to the Bot")
+
+        .setURL("https://www.paypal.com/donate/?hosted_button_id=34K9LSDMXE4TW")
+        .setStyle(ButtonStyle.Link);
+
+      const help = new ButtonBuilder()
         .setCustomId("help")
         .setLabel("Learn More")
         .setStyle(ButtonStyle.Primary);
 
       const row = new ActionRowBuilder().addComponents(help, donate);
 
-      message
+      let response = await message
         .reply({
           content: translate(
             message.client,
@@ -214,18 +212,21 @@ module.exports = {
           ),
           components: [row],
         })
-        .catch(() => null);
+        .catch((err) => {
+          console.log(err);
+          return null;
+        });
 
       try {
-        const confirmation = await message.awaitMessageComponent({
+        const confirmation = await response.awaitMessageComponent({
           time: 60_000,
         });
 
-        let connection = getVoiceConnection(channel.guild.id);
+        let connection = getVoiceConnection(voiceChannel.guild.id);
 
-        if (confirmation.customId === "donate") {
-        } else if (confirmation.customId === "help") {
-          message
+        if (confirmation.customId === "help") {
+          console.log("Uhhhh", channel);
+          await channel
             .send({
               content: translate(
                 client,
@@ -233,8 +234,12 @@ module.exports = {
                 "HELP",
                 prefix || process.env.DEFAULTPREFIX
               ),
+              components: [],
             })
-            .catch(() => null);
+            .catch((err) => {
+              console.log(err);
+              return null;
+            });
         }
       } catch (e) {
         console.log(e);

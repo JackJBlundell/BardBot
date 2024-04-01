@@ -70,7 +70,7 @@ module.exports = {
       `> Say __**"A new day begins"**__`,
       `> Type __**"@BardBot play spooky dungeon"**__`,
       `> Say __**"bot play beach"**__`,
-      `> Learn more with __**/help**__`
+      `> Learn more with __**/help**__\n`
     );
   },
   PING: (ping) => `🏓 My **API-RESPONSE-TIME** is **${ping}ms**`,
