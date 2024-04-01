@@ -151,7 +151,7 @@ module.exports = async (client) => {
         // client, args, user, channel, voiceChannel, message, prefix
         command.execute(
           client,
-          args,
+          [],
           message.author,
           message.channel,
           message.member.voice.channel,
