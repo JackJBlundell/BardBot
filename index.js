@@ -1,19 +1,23 @@
 const { createAudioResource } = require("@discordjs/voice");
-const { Client } = require("discord.js");
+const { Client, Routes, REST } = require("discord.js");
 const { readdirSync } = require("fs");
 const { clientData } = require("./utils/constants/clientData.js");
 require("dotenv").config();
-const nacl = require("tweetnacl");
+const path = require("path");
 
+// Initialize Discord client
 const client = new Client(clientData);
 
-// load modules
+// Load extenders
 readdirSync(`./extenders`)
   .filter((x) => x.endsWith(".js"))
   .forEach((fileName) => require(`./extenders/${fileName}`)(client));
+
+// Load events
 readdirSync(`./events`)
   .filter((x) => x.endsWith(".js"))
   .forEach((fileName) => require(`./events/${fileName}`)(client));
+
 readdirSync(`./commands`)
   .filter((x) => x.endsWith(".js"))
   .forEach((fileName) =>
@@ -30,36 +34,60 @@ readdirSync(`./commandResponses`)
       resource: createAudioResource(`./commandResponses/${fileName}`),
     })
   );
-// Log in with the process.env.DISCORD_TOKEN Variable
+// Load commands
+const commandsPath = path.join(__dirname, "commands");
+const commands = [];
+console.log(`Checking directory: ${commandsPath}`);
+
+try {
+  const commandFiles = readdirSync(commandsPath);
+
+  for (const file of commandFiles) {
+    const filePath = path.join(commandsPath, file);
+    console.log(`Checking file: ${filePath}`);
+
+    try {
+      const command = require(filePath);
+
+      // Validate command structure
+      if ("data" in command && "execute" in command) {
+        commands.push(command.data.toJSON());
+      } else {
+        console.log(
+          `[WARNING] The command in ${filePath} is missing a required "data" or "execute" property.`
+        );
+      }
+    } catch (error) {
+      console.error(`Error loading command file: ${filePath}`, error);
+    }
+  }
+} catch (err) {
+  console.error(`Error reading directory: ${commandsPath}`, err);
+}
+
+// Initialize Discord REST API
+const rest = new REST().setToken(process.env.DISCORD_TOKEN);
+
+// Deploy commands to Discord
+(async () => {
+  try {
+    console.log(
+      `Started refreshing ${commands.length} application (/) commands.`
+    );
+
+    // Update application commands
+    const data = await rest.put(
+      Routes.applicationCommands(process.env.DISCORD_CLIENT_ID),
+      { body: commands }
+    );
+
+    console.log(
+      `Successfully reloaded ${data.length} application (/) commands.`
+    );
+  } catch (error) {
+    console.error(error);
+  }
+})();
+
+// Log in to Discord
 client.login(process.env.DISCORD_TOKEN);
-
-exports.handler = async (event) => {
-  // Checking signature (requirement 1.)
-  // Your public key can be found on your application in the Developer Portal
-  const PUBLIC_KEY = process.env.PUBLIC_KEY;
-  const signature = event.headers["x-signature-ed25519"];
-  const timestamp = event.headers["x-signature-timestamp"];
-  const strBody = event.body; // should be string, for successful sign
-
-  const isVerified = nacl.sign.detached.verify(
-    Buffer.from(timestamp + strBody),
-    Buffer.from(signature, "hex"),
-    Buffer.from(PUBLIC_KEY, "hex")
-  );
-
-  if (!isVerified) {
-    return {
-      statusCode: 401,
-      body: JSON.stringify("invalid request signature"),
-    };
-  }
-
-  // Replying to ping (requirement 2.)
-  const body = JSON.parse(strBody);
-  if (body.type == 1) {
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ type: 1 }),
-    };
-  }
-};

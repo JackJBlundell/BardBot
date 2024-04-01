@@ -18,8 +18,8 @@ module.exports = {
     message,
     prefix
   ) => {
-    channel
-      .send({
+    message
+      .reply({
         content: translate(
           client,
           message.guildId,

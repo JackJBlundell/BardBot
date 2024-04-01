@@ -187,7 +187,7 @@ module.exports = {
       });
 
       const donate = new ButtonBuilder()
-        .setLabel("Donate to the Bot")
+        .setLabel("Donate to the team")
 
         .setURL("https://www.paypal.com/donate/?hosted_button_id=34K9LSDMXE4TW")
         .setStyle(ButtonStyle.Link);

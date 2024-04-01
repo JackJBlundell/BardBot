@@ -84,7 +84,7 @@ module.exports = async (client) => {
       // get the database prefix
       const prefix = "v!";
       if (!message.guild || (message.author && message.author.bot)) {
-        console.log(message.author);
+        console.log("NO GUILD OR NO MESSAGE");
         return;
       }
 
