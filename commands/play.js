@@ -25,8 +25,6 @@ module.exports = {
   ) => {
     let guildId = message.guildId ? message.guildId : channel.guild.id;
 
-    console.log(channel);
-
     const oldConnection = getVoiceConnection(guildId);
     if (!oldConnection)
       return channel
@@ -43,7 +41,6 @@ module.exports = {
 
     let match = findBestMatch(args);
     if (command && match) {
-      console.log("Executing!");
       command.execute(client, args, user, channel, voiceChannel, message, {});
     } else {
       if (!args[0])

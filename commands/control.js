@@ -109,7 +109,6 @@ module.exports = {
       voiceConnection.on(
         VoiceConnectionStatus.Disconnected,
         async (oldState, newState) => {
-          console.log("Disconnected?");
           try {
             await Promise.race([
               entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
@@ -117,7 +116,6 @@ module.exports = {
             ]);
             // Seems to be reconnecting to a new channel - ignore disconnect
           } catch (error) {
-            console.log("Destroying!");
             // Seems to be a real disconnect which SHOULDN'T be recovered from
             voiceConnection.destroy();
 
@@ -142,22 +140,17 @@ module.exports = {
       message.client.listenAbleUsers.add(message.user.id);
       message.client.connectedGuilds.add(message.guildId);
 
-      console.log("Adding this user to listenable users:", message.user);
-
       //STARTE ZUHÖRER
       voiceConnection.receiver.speaking.on("start", async (userId) => {
         // if it's an invalid User, or the user is not allowed anymore, or still is on cooldown WAIT
-        console.log("Speaking.", userId);
         if (
           !message.client.listenAbleUsers.has(userId) ||
           IsOnCooldown(userId, settings.listeningCooldown)
         ) {
-          console.log("NOT LISTENING!");
           return;
         }
         // use and parse the audio data from the user
 
-        console.log("parsing audio");
         parseAudioData(
           message.client,
           voiceConnection,
@@ -199,7 +192,6 @@ module.exports = {
           components: [row],
         })
         .catch((err) => {
-          console.log(err);
           return null;
         });
 
@@ -211,7 +203,6 @@ module.exports = {
         let connection = getVoiceConnection(voiceChannel.guild.id);
 
         if (confirmation.customId === "help") {
-          console.log("Uhhhh", channel);
           await channel
             .send({
               content: translate(

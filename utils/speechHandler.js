@@ -137,7 +137,6 @@ function getTriggeredWords(array) {
       triggeredWords.push(array[i]);
     }
   }
-  console.log("returning ", initiative);
 
   return { triggeredWords, initiative, newDay };
 }
@@ -218,13 +217,8 @@ async function handlePCMFile(
       try {
         fs.readdir("temp", (err, files) => {
           if (err) throw err;
-
-          console.log(
-            "FILES OF MINE: ",
-            files.filter((val) => val.includes(user.id))
-          );
-          for (const file of files.filter((val) => val.includes(user.id))) {
-            if (file.includes(mp3FileName)) {
+          for (const file of files) {
+            if (file.includes(user.username)) {
               fs.unlink(join("temp", file), (err) => {
                 if (err) throw err;
               });
@@ -246,7 +240,6 @@ async function handlePCMFile(
         VoiceConnection.joinConfig.channelId
       );
 
-      console.log("We have got initiative here:", initiative);
       if (!initiative && voice_command.length > 0) {
         // 'Bot' command called for simply running a command.
         return processCommandQuery(
@@ -282,7 +275,6 @@ async function handlePCMFile(
           client.commands.get("suggest") ||
           client.commands.find((c) => !!c.aliases?.includes("suggest"));
         if (command) {
-          console.log("Executing!");
           command.execute(
             client,
             triggeredWords,
@@ -354,7 +346,6 @@ async function processCommandQuery(
       (c) => !!c.aliases?.includes(commandName?.toLowerCase())
     );
   if (command && command.name !== "control") {
-    console.log("Executing!");
     command.execute(
       client,
       args,
@@ -372,8 +363,6 @@ async function processCommandQuery(
 // step two : return the last chunk
 async function speechToText(res) {
   const wholeBody = await res.text();
-
-  console.log(wholeBody);
 
   const returnData = [];
   for (const thing of wholeBody.split("\n")) {
@@ -399,7 +388,6 @@ async function speechToText(res) {
     return 0;
   });
 
-  console.log("SORTED?,", sorted);
   const output = sorted[0]?.split(", ")?.join(" ")?.toLowerCase();
   if (output.startsWith("hey ")) return output.replace("hey ", "");
   return output;
@@ -412,7 +400,6 @@ async function convertAudioFiles(infile, outfile) {
       .inputOptions("-ar 44100") // Set input sample rate to 44100 Hz
       .inputOptions("-ac 2") // Set input channels to stereo
       .on("end", () => {
-        console.log(`Converted audio file saved as ${outfile}`);
         resolve(outfile);
       })
       .on("error", (err) => {

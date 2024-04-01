@@ -44,7 +44,6 @@ module.exports = async (client) => {
 
     // execute the command, if it's valid
     if (command) {
-      console.log("Valid command");
       if (!validMessageCommands.includes(command.name)) {
         if (
           command.name === "control" &&
@@ -78,7 +77,6 @@ module.exports = async (client) => {
         // No control on my guild fam.
       }
 
-      console.log("EXECUTING ", message.channel);
       // client, args, user, channel, voiceChannel, message, prefix
       command.execute(
         client,
@@ -94,7 +92,6 @@ module.exports = async (client) => {
 
   client.on("interactionCreate", async (message) => {
     if (message.isButton()) return message.deferUpdate();
-    console.log("Interaction recieved", message.guild, message.options);
     try {
       // client.db.ensure(message.guildId, {
       //   prefix: process.env.DEFAULTPREFIX ?? "!",
@@ -102,7 +99,6 @@ module.exports = async (client) => {
       // get the database prefix
       const prefix = "v!";
       if (!message.guild || (message.author && message.author.bot)) {
-        console.log("NO GUILD OR NO MESSAGE");
         return;
       }
 
@@ -147,7 +143,6 @@ module.exports = async (client) => {
           // No control on my guild fam.
         }
 
-        console.log("EXECUTING ", message.channel);
         // client, args, user, channel, voiceChannel, message, prefix
         command.execute(
           client,

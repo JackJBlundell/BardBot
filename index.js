@@ -37,14 +37,11 @@ readdirSync(`./commandResponses`)
 // Load commands
 const commandsPath = path.join(__dirname, "commands");
 const commands = [];
-console.log(`Checking directory: ${commandsPath}`);
-
 try {
   const commandFiles = readdirSync(commandsPath);
 
   for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
-    console.log(`Checking file: ${filePath}`);
 
     try {
       const command = require(filePath);
@@ -52,10 +49,6 @@ try {
       // Validate command structure
       if ("data" in command && "execute" in command) {
         commands.push(command.data.toJSON());
-      } else {
-        console.log(
-          `[WARNING] The command in ${filePath} is missing a required "data" or "execute" property.`
-        );
       }
     } catch (error) {
       console.error(`Error loading command file: ${filePath}`, error);
@@ -71,18 +64,10 @@ const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 // Deploy commands to Discord
 (async () => {
   try {
-    console.log(
-      `Started refreshing ${commands.length} application (/) commands.`
-    );
-
     // Update application commands
     const data = await rest.put(
       Routes.applicationCommands(process.env.DISCORD_CLIENT_ID),
       { body: commands }
-    );
-
-    console.log(
-      `Successfully reloaded ${data.length} application (/) commands.`
     );
   } catch (error) {
     console.error(error);
