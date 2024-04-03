@@ -170,11 +170,6 @@ module.exports = {
         .setURL("https://www.paypal.com/donate/?hosted_button_id=34K9LSDMXE4TW")
         .setStyle(ButtonStyle.Link);
 
-      const server = new ButtonBuilder()
-        .setLabel("Join Our Server")
-        .setURL("https://www.discord.gg/9Rz5BQ9n")
-        .setStyle(ButtonStyle.Link);
-
       const feedback = new ButtonBuilder()
         .setLabel("Got Feedback?")
         .setURL("https://forms.gle/uZ8GQsCFyU83E5uW6")
@@ -185,12 +180,7 @@ module.exports = {
         .setLabel("Learn More")
         .setStyle(ButtonStyle.Primary);
 
-      const row = new ActionRowBuilder().addComponents(
-        help,
-        server,
-        feedback,
-        donate
-      );
+      const row = new ActionRowBuilder().addComponents(help, feedback, donate);
 
       let response = await message
         .reply({
