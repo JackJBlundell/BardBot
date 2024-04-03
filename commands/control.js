@@ -172,7 +172,7 @@ module.exports = {
 
       const server = new ButtonBuilder()
         .setLabel("Join Our Server")
-        .setURL("discord.gg /9Rz5BQ9n")
+        .setURL("discord.gg/9Rz5BQ9n")
         .setStyle(ButtonStyle.Link);
 
       const feedback = new ButtonBuilder()
