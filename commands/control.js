@@ -164,11 +164,20 @@ module.exports = {
         if (e) console.error(e);
         message.client.listenAbleUsers.delete(message.user.id);
       });
-
       const donate = new ButtonBuilder()
         .setLabel("Donate to the team")
 
         .setURL("https://www.paypal.com/donate/?hosted_button_id=34K9LSDMXE4TW")
+        .setStyle(ButtonStyle.Link);
+
+      const server = new ButtonBuilder()
+        .setLabel("Join Our Server")
+        .setURL("discord.gg /9Rz5BQ9n")
+        .setStyle(ButtonStyle.Link);
+
+      const feedback = new ButtonBuilder()
+        .setLabel("Got Feedback?")
+        .setURL("https://forms.gle/uZ8GQsCFyU83E5uW6")
         .setStyle(ButtonStyle.Link);
 
       const help = new ButtonBuilder()
@@ -176,7 +185,12 @@ module.exports = {
         .setLabel("Learn More")
         .setStyle(ButtonStyle.Primary);
 
-      const row = new ActionRowBuilder().addComponents(help, donate);
+      const row = new ActionRowBuilder().addComponents(
+        help,
+        server,
+        feedback,
+        donate
+      );
 
       let response = await message
         .reply({
