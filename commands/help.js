@@ -3,6 +3,7 @@ const { PermissionsBitField, SlashCommandBuilder } = require("discord.js");
 const { translate } = require("../utils/language.js");
 const { joinVoiceChannelUtil } = require("../utils/playerFunctions.js");
 const { parseAudioData } = require("../utils/speechHandler.js");
+const { sendMessage } = require("../utils/message.helper.js");
 module.exports = {
   name: "help",
   data: new SlashCommandBuilder()
@@ -18,15 +19,13 @@ module.exports = {
     message,
     prefix
   ) => {
-    message
-      .reply({
-        content: translate(
-          client,
-          message.guildId,
-          "HELP",
-          prefix || process.env.DEFAULTPREFIX
-        ),
-      })
-      .catch(() => null);
+    return sendMessage(message, undefined, channel, {
+      content: translate(
+        client,
+        message.guildId,
+        "HELP",
+        prefix || process.env.DEFAULTPREFIX
+      ),
+    });
   },
 };

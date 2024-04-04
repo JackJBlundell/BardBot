@@ -31,18 +31,18 @@ module.exports = {
     prefix
   ) => {
     if (!voiceChannel)
-      return message
-        .reply({
-          content: translate(message.client, message.guildId, "JOIN_VC"),
-        })
-        .catch(console.warn);
+      return sendMessage(message, channel, {
+        content: translate(message.client, message.guildId, "JOIN_VC"),
+      });
 
     let guildNoteMode = client.noteModes.get(channel.guild.id);
     let activated = guildNoteMode ? !guildNoteMode : true;
 
     client.noteModes.set(channel.guild.id, activated);
 
-    await message.reply(
+    sendMessage(
+      message,
+      channel,
       `${activated ? Emojis.check.str : Emojis.cross.str} Notation mode ${
         activated ? "activated" : "de-actived"
       }.`

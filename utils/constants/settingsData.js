@@ -454,7 +454,16 @@ const expandedTags = {
 // Soundboard
 const combat = [
   {
-    keywords: ["fly", "whizz", "past", "miss", "swift"],
+    keywords: [
+      "fly",
+      "whizz",
+      "past",
+      "miss",
+      "swift",
+      "flies",
+      "soars",
+      "soar",
+    ],
     required: "arrow",
     url: "arrowFlying.mp3",
   },

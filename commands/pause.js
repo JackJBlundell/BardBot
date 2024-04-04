@@ -9,6 +9,7 @@ const {
 const { parseAudioData } = require("../utils/speechHandler.js");
 const { default: YouTube } = require("youtube-sr");
 const { translate } = require("../utils/language.js");
+const { sendMessage } = require("../utils/message.helper.js");
 module.exports = {
   name: "pause",
   description: "Pauses the current Track",
@@ -26,11 +27,9 @@ module.exports = {
   ) => {
     const oldConnection = getVoiceConnection(message.guildId);
     if (!oldConnection)
-      return channel
-        .send({
-          content: translate(client, message.guildId, "NOT_CONNECTED"),
-        })
-        .catch(() => null);
+      return sendMessage(message, undefined, channel, {
+        content: translate(client, message.guildId, "NOT_CONNECTED"),
+      });
 
     const queue = client.queues.get(message.guildId); // get the queue
     if (!queue) {

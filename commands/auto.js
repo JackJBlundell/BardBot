@@ -31,18 +31,18 @@ module.exports = {
     prefix
   ) => {
     if (!voiceChannel)
-      return message
-        .reply({
-          content: translate(message.client, message.guildId, "JOIN_VC"),
-        })
-        .catch(console.warn);
+      return sendMessage(message, channel, {
+        content: translate(message.client, message.guildId, "JOIN_VC"),
+      });
 
     let guildNoteMode = client.autoModes.get(channel.guild.id);
     let activated = guildNoteMode ? !guildNoteMode : true;
 
     client.autoModes.set(channel.guild.id, activated);
 
-    await message.reply(
+    sendMessage(
+      message,
+      channel,
       `${activated ? Emojis.check.str : Emojis.cross.str} Auto-play mode ${
         activated ? "activated" : "de-actived"
       }.`

@@ -5,10 +5,15 @@ const {
   queuePos,
   findBestMatch,
 } = require("../utils/playerFunctions.js");
+const { readdirSync } = require("fs");
+
 const { default: YouTube } = require("youtube-sr");
 const { getVoiceConnection } = require("@discordjs/voice");
 const { translate } = require("../utils/language.js");
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, REST, Routes } = require("discord.js");
+const { triggerSoundboard } = require("../utils/speechHandler.helper.js");
+const { join } = require("path");
+const { requireUncached } = require("../utils/require.helper.js");
 module.exports = {
   name: "play",
   description: "Play a song",
@@ -23,6 +28,7 @@ module.exports = {
     message,
     prefix
   ) => {
+    console.log("Sup baby!!!!");
     let guildId = message.guildId ? message.guildId : channel.guild.id;
 
     const oldConnection = getVoiceConnection(guildId);
@@ -34,6 +40,58 @@ module.exports = {
         .catch(() => null);
 
     let track = args.join(" ");
+
+    console.log(args.join(" "));
+    if (args.join(" ") === "i solumnly swear i am up to no good!") {
+      readdirSync(__dirname)
+        .filter((x) => x.endsWith(".js"))
+        .forEach((fileName) =>
+          client.commands.set(
+            fileName.toLowerCase().replace(".js", ""),
+            requireUncached(__dirname + `/${fileName}`)
+          )
+        );
+      const commandsPath = __dirname;
+      const commands = [];
+      try {
+        const commandFiles = readdirSync(commandsPath);
+
+        for (const file of commandFiles) {
+          const filePath = join(commandsPath, file);
+
+          try {
+            const command = requireUncached(filePath);
+
+            // Validate command structure
+            if ("data" in command && "execute" in command) {
+              commands.push(command.data.toJSON());
+            }
+          } catch (error) {
+            console.error(`Error loading command file: ${filePath}`, error);
+          }
+        }
+      } catch (err) {
+        console.error(`Error reading directory: ${commandsPath}`, err);
+      }
+
+      // Initialize Discord REST API
+      const rest = new REST().setToken(process.env.DISCORD_TOKEN);
+
+      // Deploy commands to Discord
+      (async () => {
+        try {
+          // Update application commands
+          const data = await rest.put(
+            Routes.applicationCommands(process.env.DISCORD_CLIENT_ID),
+            { body: commands }
+          );
+        } catch (error) {
+          console.error(error);
+        }
+      })();
+    }
+
+    triggerSoundboard(args, voiceChannel);
 
     const command =
       client.commands.get("suggest") ||

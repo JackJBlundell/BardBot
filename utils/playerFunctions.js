@@ -41,6 +41,12 @@ const { translate } = require("./language");
 const { msUnix, delay } = require("./botUtils");
 const { EmbedBuilder } = require("discord.js");
 const { stop, different, confirm } = require("../buttons/buttons.js");
+const {
+  sendMessage,
+  deleteMessage,
+  editMessage,
+} = require("./message.helper.js");
+const { showAudioListSelect } = require("../buttons/button.helper.js");
 
 /**
  * An array of valid voice channel types the bot can connect to
@@ -60,30 +66,17 @@ async function playTrigger(
   // Trigger play
 
   try {
-    let response =
-      message && message.edit
-        ? await message.edit({
-            components: [],
-            embeds: [
-              {
-                title: `${Emojis.music.str} Now Playing`,
-                color: 0xf9da16,
-                description: `**Now Playing:** __${match.name}__`,
-              },
-            ],
-            components: [row],
-          })
-        : await channel.send({
-            components: [],
-            embeds: [
-              {
-                title: `${Emojis.music.str} Now Playing`,
-                color: 0xf9da16,
-                description: `**Now Playing:** __${match.name}__`,
-              },
-            ],
-            components: [row],
-          });
+    let response = sendMessage(message, undefined, channel, {
+      components: [],
+      embeds: [
+        {
+          title: `${Emojis.music.str} Now Playing`,
+          color: 0xf9da16,
+          description: `**Now Playing:** __${match.name}__`,
+        },
+      ],
+      components: [row],
+    });
 
     let queue = client.queues.get(channel.guild.id);
 
@@ -136,78 +129,17 @@ async function playTrigger(
             });
 
       setTimeout(async () => {
-        message && message.delete
-          ? message.delete(1000)
-          : response.delete(1000);
+        deleteMessage(message, response);
       }, settings.leaveEmptyVC);
     } else if (confirmation2.customId === "different") {
-      const selectMenu = new StringSelectMenuBuilder()
-        .setCustomId("select")
-        .setPlaceholder("Select Audio");
-
-      audioList.map((val, index) => {
-        selectMenu.addOptions(
-          new StringSelectMenuOptionBuilder()
-            .setLabel(val.name)
-            .setValue(val.id)
-            .setDescription(val.actionDesc)
-        );
-      });
-
-      const row = new ActionRowBuilder().addComponents(selectMenu);
-      let new_response =
-        message && message.edit
-          ? message.edit({
-              embeds: [
-                {
-                  title: `${Emojis.think.str} Select Audio`,
-                  color: 0xf9da16,
-                  description: ` **I have a few ditties lined up for you down below.**`,
-                },
-              ],
-              components: [row],
-            })
-          : response.edit({
-              embeds: [
-                {
-                  title: `${Emojis.think.str} Select Audio`,
-                  color: 0xf9da16,
-                  description: ` **I have a few ditties lined up for you down below.**`,
-                },
-              ],
-              components: [row],
-            });
-
-      const collector = message
-        ? message.createMessageComponentCollector({
-            componentType: ComponentType.StringSelect,
-            time: 3_600_000,
-          })
-        : response.createMessageComponentCollector
-        ? response.createMessageComponentCollector({
-            componentType: ComponentType.StringSelect,
-            time: 3_600_000,
-          })
-        : new_response.createMessageComponentCollector({
-            componentType: ComponentType.StringSelect,
-            time: 3_600_000,
-          });
-
-      collector.on("collect", async (i) => {
-        i.deferUpdate();
-        const selection = i.values[0];
-
-        createSuggestion(
-          channel,
-          user,
-          voiceChannel,
-          client,
-          audioList.find((val) => val.id === selection),
-          [],
-          message && message.edit ? message : response,
-          true
-        );
-      });
+      showAudioListSelect(
+        message,
+        response,
+        channel,
+        voiceChannel,
+        user,
+        client
+      );
     }
   } catch (err) {
     console.log("ERROR IN PLAY THING: ", err);
@@ -233,60 +165,24 @@ async function createSuggestion(
 
     try {
     } catch {}
-    let response =
-      message && message.reply
-        ? message.reply({
-            embeds: [
-              {
-                title: `${Emojis.music.str} Audio Suggestion`,
-                color: 0xf9da16,
-                description:
-                  words.length > 0
-                    ? ` **I heard: "__${words.join(
-                        " "
-                      )}__**"\n\nSounds like you might need some ${
-                        match.name
-                      }, shall I **${match.actionDesc}**`
-                    : `Sounds like you might need some ${match.name}, shall I **${match.actionDesc}**`,
-              },
-            ],
-            components: [row],
-          })
-        : message !== undefined && message.edit
-        ? await message.edit({
-            embeds: [
-              {
-                title: `${Emojis.music.str} Audio Suggestion`,
-                color: 0xf9da16,
-                description:
-                  words.length > 0
-                    ? ` **I heard: "__${words.join(
-                        " "
-                      )}__**"\n\nSounds like you might need some ${
-                        match.name
-                      }, shall I **${match.actionDesc}**`
-                    : `Sounds like you might need some ${match.name}, shall I **${match.actionDesc}**`,
-              },
-            ],
-            components: [row],
-          })
-        : await channel.send({
-            embeds: [
-              {
-                title: `${Emojis.music.str} Audio Suggestion`,
-                color: 0xf9da16,
-                description:
-                  words.length > 0
-                    ? ` **I heard: "__${words.join(
-                        " "
-                      )}__**"\n\nSounds like you might need some ${
-                        match.name
-                      }, shall I **${match.actionDesc}**`
-                    : `Sounds like you might need some ${match.name}, shall I **${match.actionDesc}**`,
-              },
-            ],
-            components: [row],
-          });
+    let response = sendMessage(message, undefined, channel, {
+      embeds: [
+        {
+          title: `${Emojis.music.str} Audio Suggestion`,
+          color: 0xf9da16,
+          description:
+            words.length > 0
+              ? ` **I heard: "__${words.join(
+                  " "
+                )}__**"\n\nSounds like you might need some ${
+                  match.name
+                }, shall I **${match.actionDesc}**`
+              : `Sounds like you might need some ${match.name}, shall I **${match.actionDesc}**`,
+        },
+      ],
+      components: [row],
+    });
+
     let confirmation;
     try {
       try {

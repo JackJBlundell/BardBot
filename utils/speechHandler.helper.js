@@ -3,6 +3,7 @@ const SoundBoard = require("djs-soundboard");
 let sound = new SoundBoard();
 const { createAudioResource } = require("@discordjs/voice");
 const { createReadStream } = require("fs");
+const { join } = require("path");
 
 // Function to find triggers if any and to call them out.
 function getTriggeredWords(array) {
@@ -112,22 +113,29 @@ function getTriggeredWords(array) {
 }
 
 // Function to get a variety of soundboard keywords such as 'Arrow flies' or 'dragon breathes'...
-function getSoundboardKeywords(array, voiceChannel) {
+function triggerSoundboard(array, voiceChannel) {
+  console.log(array);
   for (let i = 0; i < soundboard.combat.length; i++) {
     let effect = soundboard.combat[i];
 
     if (effect !== null && array.includes(effect.required)) {
+      console.log("Got required...");
       // There is a trigger for soundboard - check for more keywords.
       let triggered = false;
 
       for (let j = 0; j < effect.keywords.length; j++) {
-        if (array.includes(effect[i])) {
+        console.log("keyword: ", effect.keywords[j]);
+        if (array.includes(effect.keywords[j])) {
           try {
+            console.log(
+              "playing?",
+              join(__dirname, "..", "assets", "soundboard", effect.url)
+            );
             sound.play(
               voiceChannel,
-              createAudioRe(
+              createAudioResource(
                 createReadStream(
-                  join(__dirname, "..", "assets", "music", match.url)
+                  join(__dirname, "..", "assets", "soundboard", effect.url)
                 )
               )
             );
@@ -172,5 +180,5 @@ function getBotTriggeredWords(array) {
 module.exports = {
   getBotTriggeredWords,
   getTriggeredWords,
-  getSoundboardKeywords,
+  triggerSoundboard,
 };

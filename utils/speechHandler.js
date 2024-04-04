@@ -43,6 +43,7 @@ const {
   getBotTriggeredWords,
   getTriggeredWords,
   getSoundboardKeywords,
+  triggerSoundboard,
 } = require("./speechHandler.helper");
 
 let witAI_lastcallTS = null;
@@ -229,7 +230,8 @@ async function handlePCMFile(
         }
       }
 
-      console.log("words? ", triggeredWords);
+      triggerSoundboard(output.split(" "), voiceChannel);
+
       if (!initiative && voice_command.length > 0) {
         // 'Bot' command called for simply running a command.
         return processCommandQuery(
@@ -299,6 +301,23 @@ async function handlePCMFile(
         //   model: "gpt-3.5-turbo",
         // });
         // console.log(chatCompletion.choices[0]);
+      } else if (soundboardKeywords > 0) {
+        const command =
+          client.commands.get("suggest") ||
+          client.commands.find((c) => !!c.aliases?.includes("suggest"));
+        if (command) {
+          command.execute(
+            client,
+            triggeredWords,
+            user,
+            channel,
+            voiceChannel,
+            undefined,
+            {}
+          );
+        } else {
+          console.log("Command not found here:", client.commands);
+        }
       }
       // return await msg
       //   .edit({

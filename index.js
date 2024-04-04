@@ -4,6 +4,7 @@ const { readdirSync } = require("fs");
 const { clientData } = require("./utils/constants/clientData.js");
 require("dotenv").config();
 const path = require("path");
+const { requireUncached } = require("./utils/require.helper.js");
 
 // Initialize Discord client
 const client = new Client(clientData);
@@ -44,7 +45,7 @@ try {
     const filePath = path.join(commandsPath, file);
 
     try {
-      const command = require(filePath);
+      const command = requireUncached(filePath);
 
       // Validate command structure
       if ("data" in command && "execute" in command) {
