@@ -199,7 +199,6 @@ async function handlePCMFile(
               description: `\nBe sure to speak **loud**, **clear**, and **do not pause** when speaking. `,
             },
           ],
-          components: [row],
           flags: [4096],
         });
 
