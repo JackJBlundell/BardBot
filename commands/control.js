@@ -14,6 +14,7 @@ const { joinVoiceChannelUtil } = require("../utils/playerFunctions.js");
 const { parseAudioData } = require("../utils/speechHandler.js");
 const { settings, Emojis } = require("../utils/constants/settingsData.js");
 const { translate } = require("../utils/language.js");
+const { donate, feedback, help } = require("../buttons/buttons.js");
 const justListened = new Map();
 
 module.exports = {
@@ -164,21 +165,6 @@ module.exports = {
         if (e) console.error(e);
         message.client.listenAbleUsers.delete(message.user.id);
       });
-      const donate = new ButtonBuilder()
-        .setLabel("Donate to the team")
-
-        .setURL("https://www.paypal.com/donate/?hosted_button_id=34K9LSDMXE4TW")
-        .setStyle(ButtonStyle.Link);
-
-      const feedback = new ButtonBuilder()
-        .setLabel("Got Feedback?")
-        .setURL("https://forms.gle/uZ8GQsCFyU83E5uW6")
-        .setStyle(ButtonStyle.Link);
-
-      const help = new ButtonBuilder()
-        .setCustomId("help")
-        .setLabel("Learn More")
-        .setStyle(ButtonStyle.Primary);
 
       const row = new ActionRowBuilder().addComponents(help, feedback, donate);
 
@@ -203,8 +189,6 @@ module.exports = {
         const confirmation = await response.awaitMessageComponent({
           time: 60_000,
         });
-
-        let connection = getVoiceConnection(voiceChannel.guild.id);
 
         if (confirmation.customId === "help") {
           await channel

@@ -29,8 +29,8 @@ module.exports = {
   HELP: (prefix) => {
     return newLiner(
       `❓ **Bard Bot Help** ❓\n\n`,
-      `__Automatic Suggestions:__\n`,
-      `> *BardBot is always on the lookout for magical triggers!* 🎩✨\n`,
+      `Trala! I am BardBot, your official D&D Discord Companion. I'm designed to enhance immersion through the power of ``__Automatic Suggestions:__\n`,
+      `> *I'm always on the lookout for magical triggers!* 🎩✨\n`,
       `> - **"You walk into":** Transport your players to vivid locales with just a phrase! 🌍\n`,
       `> - **"Suddenly":** Stir the senses and invoke surprise with a sudden twist in the tale! ⚡\n`,
       `> - **"In the distance":** Set the scene with distant wonders and mysterious encounters! 🔭\n`,
@@ -47,7 +47,8 @@ module.exports = {
       `- **/ping:** Check ping time\n`,
       `- **/pause:** Pause audio playing\n`,
       `- **/resume:** Resume audio playing\n\n`,
-      `Embark on a musical adventure with BardBot and elevate your storytelling to legendary heights! 🚀🔊`
+      `- **/auto:** Toggle auto-play mode - Increased immersion!\n\n`,
+      `- **/notes:** Toggle notation mode - Transcribe your DM`
     );
   },
   CONTROLLING: (possibleCommands) => {

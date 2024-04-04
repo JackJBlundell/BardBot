@@ -15,15 +15,15 @@ const expandedTags = {
     "bustle",
     "downtown",
     "sidewalk",
-    "car horns",
+    "bustliung",
     "pedestrians",
-    "public transport",
+    "hustling",
     "skyscrapers",
-    "business district",
+    "business",
     "cafes",
     "restaurants",
     "shops",
-    "neon lights",
+    "streets",
   ],
   tavernAmbiance: [
     "pub",
@@ -38,14 +38,15 @@ const expandedTags = {
     "dive",
     "bartender",
     "patrons",
-    "drinking songs",
+    "songs",
     "tankards",
-    "wooden tables",
-    "board games",
-    "roaring fire",
+    "tables",
+    "hustle",
+    "bustle",
+    "games",
     "barkeep",
     "alehouse",
-    "bar stool",
+    "stool",
   ],
   prisonDungeonNoises: [
     "prison",
@@ -86,6 +87,8 @@ const expandedTags = {
     "swords",
     "shields",
     "armor",
+    "roll",
+    "initiative",
     "foes",
     "confrontation",
     "champion",
@@ -134,6 +137,9 @@ const expandedTags = {
     "contentment",
     "happiness",
     "gratitude",
+    "new",
+    "begins",
+    "day",
   ],
   adventuringTravellingMusic: [
     "adventure",
@@ -237,6 +243,7 @@ const expandedTags = {
     "hiking",
     "alpine",
     "valleys",
+    "valley",
     "ridge",
     "altitude",
     "plateau",
@@ -444,6 +451,72 @@ const expandedTags = {
   ],
 };
 
+// Soundboard
+const combat = [
+  {
+    keywords: ["fly", "whizz", "past", "miss", "swift"],
+    required: "arrow",
+    url: "arrowFlying.mp3",
+  },
+  {
+    keywords: ["swing", "blade", "slash", "cut", "attack"],
+    required: "sword",
+    url: "path_to_sword_swing.mp3",
+  },
+  {
+    keywords: ["clash", "clang", "metal", "impact", "parry"],
+    required: "sword",
+    url: "path_to_sword_clash.mp3",
+  },
+  {
+    keywords: ["thud", "strike", "blow", "hit", "pound"],
+    required: null,
+    url: "path_to_blunt_impact.mp3",
+  },
+  {
+    keywords: ["crack", "pierce", "penetrate", "stab", "thrust"],
+    required: null,
+    url: "path_to_piercing_impact.mp3",
+  },
+  {
+    keywords: ["thud", "crash", "strike", "smash", "collision"],
+    required: null,
+    url: "path_to_heavy_impact.mp3",
+  },
+  {
+    keywords: ["hit", "devastating", "strike", "damage", "lethal"],
+    required: null,
+    url: "path_to_critical_hit.mp3",
+  },
+  {
+    keywords: ["draw", "metallic", "scrape", "unsheathe", "ready"],
+    required: "weapon",
+    url: "path_to_weapon_draw.mp3",
+  },
+  {
+    keywords: ["movement", "clank", "rustle", "shift", "gear"],
+    required: "armor",
+    url: "path_to_armor_movement.mp3",
+  },
+  {
+    keywords: ["block", "clang", "parry", "defend", "guard"],
+    required: "shield",
+    url: "path_to_shield_block.mp3",
+  },
+  {
+    keywords: ["bash", "thud", "strike", "push", "assault"],
+    required: "shield",
+    url: "path_to_shield_bash.mp3",
+  },
+  {
+    keywords: ["sunder", "rend", "metal", "break", "destroy"],
+    required: "armor",
+    url: "path_to_armor_sunder.mp3",
+  },
+];
+
+const soundboard = { combat };
+
 let tags = [];
 
 // Loop through each property of expandedTags
@@ -602,12 +675,13 @@ module.exports = {
   Status,
   Color,
   settings: {
-    listeningCooldown: 5_500,
+    listeningCooldown: 2_500,
     prefixCommands: ["control", "language", "prefix"],
     leaveEmptyVC: 60_000,
     validVoiceKeyWords: ["bot", "bard", "bard"],
   },
-  tags: tags,
-  audioList: audioList,
+  tags,
+  audioList,
+  soundboard,
   Emojis,
 };

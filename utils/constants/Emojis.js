@@ -9,6 +9,7 @@ module.exports = {
   empty: getEmoji("🤖"),
   music: getEmoji("🎻"),
   think: getEmoji("🤔"),
+  notes: getEmoji("📝"),
 };
 function getEmoji(str) {
   str = str.trim();

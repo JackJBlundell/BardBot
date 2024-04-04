@@ -54,6 +54,7 @@ module.exports = {
     try {
       let match = findBestMatch(args);
 
+      console.log("Match? ", match, args);
       if (match) {
         createSuggestion(
           channel,

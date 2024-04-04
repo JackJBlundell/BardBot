@@ -1,14 +1,14 @@
-const { getVoiceConnection } = require("@discordjs/voice");
-const { PermissionsBitField, SlashCommandBuilder } = require("discord.js");
-const {
-  joinVoiceChannelUtil,
-  playSong,
-  createQueue,
-  createSong,
-} = require("../utils/playerFunctions.js");
-const { parseAudioData } = require("../utils/speechHandler.js");
-const { default: YouTube } = require("youtube-sr");
-const { translate } = require("../utils/language.js");
+// const { getVoiceConnection } = require("@discordjs/voice");
+// const { PermissionsBitField, SlashCommandBuilder } = require("discord.js");
+// const {
+//   joinVoiceChannelUtil,
+//   playSong,
+//   createQueue,
+//   createSong,
+// } = require("../utils/playerFunctions.js");
+// const { parseAudioData } = require("../utils/speechHandler.js");
+// const { default: YouTube } = require("youtube-sr");
+// const { translate } = require("../utils/language.js");
 // module.exports = {
 //   name: "clearqueue",
 //   description: "Clears the current queue",

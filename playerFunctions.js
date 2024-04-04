@@ -59,9 +59,11 @@ const joinVoiceChannelUtil = async (client, channel) => {
       }
     );
     // delete the queue on channel leave
-    newConnection.on(VoiceConnectionStatus.Destroyed, () =>
-      client.queues.delete(channel.guild.id)
-    );
+    newConnection.on(VoiceConnectionStatus.Destroyed, () => {
+      client.queues.delete(channel.guild.id);
+      client.noteModes.delete(channel.guild.id);
+      client.autoModes.delete(channel.guild.id);
+    });
 
     // making the client a speaker, if in a stage channel
     if (channel.type === ChannelType.GuildStageVoice)
@@ -341,38 +343,38 @@ async function handleQueue(client, player, queue) {
           }
           queue.tracks = [];
           // Don't print queue is empty and don't leave like this!
-          // const textChannel = await client.channels
-          //   .fetch(queue.textChannel)
-          //   .catch(() => null);
-          // if (textChannel) {
-          //   textChannel
-          //     .send({
-          //       content: translate(
-          //         client,
-          //         textChannel.guildId,
-          //         "QUEUE_EMPTY",
-          //         msUnix(Date.now() + settings.leaveEmptyVC)
-          //       ),
-          //     })
-          //     .catch(console.warn);
-          // }
-          // setTimeout(async () => {
-          //   const nqueue = client.queues.get(queue.guildId);
-          //   if (!nqueue?.tracks?.length) {
-          //     // get the bot's voice Connection
-          //     const meChannel = client.guilds.cache.get(queue.guildId)?.members
-          //       ?.me?.voice?.channel;
-          //     if (meChannel) leaveVoiceChannel(meChannel);
-          //     else {
-          //       // else fetch the voicechannel and leave it
-          //       const vc = await client.channels
-          //         .fetch(queue.voiceChannel)
-          //         .catch(() => null);
-          //       if (vc) leaveVoiceChannel(vc);
-          //     }
-          //   } else console.log(nqueue);
-          //   return;
-          // }, settings.leaveEmptyVC);
+          const textChannel = await client.channels
+            .fetch(queue.textChannel)
+            .catch(() => null);
+          if (textChannel) {
+            textChannel
+              .send({
+                content: translate(
+                  client,
+                  textChannel.guildId,
+                  "QUEUE_EMPTY",
+                  msUnix(Date.now() + settings.leaveEmptyVC)
+                ),
+              })
+              .catch(console.warn);
+          }
+          setTimeout(async () => {
+            const nqueue = client.queues.get(queue.guildId);
+            if (!nqueue?.tracks?.length) {
+              // get the bot's voice Connection
+              const meChannel = client.guilds.cache.get(queue.guildId)?.members
+                ?.me?.voice?.channel;
+              if (meChannel) leaveVoiceChannel(meChannel);
+              else {
+                // else fetch the voicechannel and leave it
+                const vc = await client.channels
+                  .fetch(queue.voiceChannel)
+                  .catch(() => null);
+                if (vc) leaveVoiceChannel(vc);
+              }
+            } else console.log(nqueue);
+            return;
+          }, settings.leaveEmptyVC);
         }
       } else {
         // get the bot's voice Connection

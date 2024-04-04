@@ -40,183 +40,109 @@ const { Color, settings } = require("./constants/settingsData");
 const { translate } = require("./language");
 const { msUnix, delay } = require("./botUtils");
 const { EmbedBuilder } = require("discord.js");
+const { stop, different, confirm } = require("../buttons/buttons.js");
 
 /**
  * An array of valid voice channel types the bot can connect to
  */
 const validVCTypes = [ChannelType.GuildVoice, ChannelType.GuildStageVoice];
 
-async function createSuggestion(
+async function playTrigger(
+  message,
   channel,
-  user,
   voiceChannel,
   client,
-  match,
-  words,
-  message
+  user,
+  match
 ) {
-  const confirm = new ButtonBuilder()
-    .setCustomId("confirm")
-    .setLabel("▶️ Play")
-    .setStyle(ButtonStyle.Success);
+  const row = new ActionRowBuilder().addComponents(stop, different);
 
-  const different = new ButtonBuilder()
-    .setCustomId("different")
-    .setLabel("Change Audio")
-    .setStyle(ButtonStyle.Secondary);
-
-  const row = new ActionRowBuilder().addComponents(confirm, different);
-  let m;
-
-  m = await channel.send({
-    embeds: [
-      {
-        title: `${Emojis.music.str} Audio Suggestion`,
-        color: 0xf9da16,
-        description:
-          words.length > 0
-            ? ` **I heard: "__${words.join(
-                " "
-              )}__**"\n\nSounds like you might need some ${
-                match.name
-              }, shall I **${match.actionDesc}**`
-            : `Sounds like you might need some ${match.name}, shall I **${match.actionDesc}**`,
-      },
-    ],
-    components: [row],
-  });
+  // Trigger play
+  console.log("hey i should play you know.");
 
   try {
-    const confirmation = await m.awaitMessageComponent({
-      time: 60_000,
-    });
-
-    let connection = getVoiceConnection(channel.guild.id);
-
-    if (confirmation.customId === "confirm") {
-      const stop = new ButtonBuilder()
-        .setCustomId("stop")
-        .setLabel("Stop")
-        .setStyle(ButtonStyle.Danger);
-
-      const row = new ActionRowBuilder().addComponents(stop, different);
-
-      // Trigger play
-      console.log("hey");
-
-      try {
-        await m.edit({
-          components: [],
-          embeds: [
-            {
-              title: `${Emojis.music.str} Now Playing`,
-              color: 0xf9da16,
-              description: `**Now Playing:** __${match.name}__`,
-            },
-          ],
-          components: [row],
-        });
-
-        let queue = client.queues.get(channel.guild.id);
-
-        // Get music file
-        let resource = createAudioResource(
-          createReadStream(join(__dirname, "..", "assets", "music", match.url))
-        );
-
-        const player = createAudioPlayer({
-          behaviors: {
-            noSubscriber: NoSubscriberBehavior.Pause,
-          },
-        });
-
-        const newQueue = createQueue(
-          resource,
-          user,
-          channel.id,
-          voiceChannel.id
-        );
-        client.queues.set(channel.guild.id, newQueue);
-
-        player.play(resource);
-        connection.subscribe(player);
-
-        const confirmation2 = await m.awaitMessageComponent({
-          time: 60_000,
-        });
-        if (confirmation2.customId === "stop") {
-          connection.state.subscription.player.stop();
-
-          await m.edit({
+    let response =
+      message && message.edit
+        ? await message.edit({
             components: [],
             embeds: [
               {
-                title: `${Emojis.cross.str} Stopped Playing`,
+                title: `${Emojis.music.str} Now Playing`,
                 color: 0xf9da16,
-                description: `I have stopped playing music.`,
+                description: `**Now Playing:** __${match.name}__`,
               },
             ],
-          });
-        } else if (confirmation2.customId === "different") {
-          const selectMenu = new StringSelectMenuBuilder()
-            .setCustomId("select")
-            .setPlaceholder("Select Audio");
-
-          audioList.map((val, index) => {
-            selectMenu.addOptions(
-              new StringSelectMenuOptionBuilder()
-                .setLabel(val.name)
-                .setValue(val.id)
-                .setDescription(val.actionDesc)
-            );
-          });
-
-          const row = new ActionRowBuilder().addComponents(selectMenu);
-
-          m.edit({
+            components: [row],
+          })
+        : await channel.send({
+            components: [],
             embeds: [
               {
-                title: `${Emojis.music.str} Audio Suggestion`,
+                title: `${Emojis.music.str} Now Playing`,
                 color: 0xf9da16,
-                description: ` **I heard: "__${words.join(
-                  " "
-                )}__**"\n\nSounds like you might need some ${
-                  match.name
-                }, shall I **${match.actionDesc}**`,
+                description: `**Now Playing:** __${match.name}__`,
               },
             ],
             components: [row],
           });
 
-          const collector = m.createMessageComponentCollector({
-            componentType: ComponentType.StringSelect,
-            time: 3_600_000,
-          });
+    let queue = client.queues.get(channel.guild.id);
 
-          collector.on("collect", async (i) => {
-            i.deferUpdate();
-            const selection = i.values[0];
+    // Get music file
+    let resource = createAudioResource(
+      createReadStream(join(__dirname, "..", "assets", "music", match.url))
+    );
 
-            createSuggestion(
-              channel,
-              user,
-              voiceChannel,
-              client,
-              audioList.find((val) => val.id === selection),
-              [],
-              m
-            );
-          });
-        }
-      } catch (err) {
-        console.log("ERROR IN PLAY THING: ", err);
-      }
-    } else if (confirmation.customId === "stop") {
-      await confirmation.update({
-        content: "Action cancelled",
-        components: [],
-      });
-    } else if (confirmation.customId === "different") {
+    const player = createAudioPlayer({
+      behaviors: {
+        noSubscriber: NoSubscriberBehavior.Pause,
+      },
+    });
+
+    const newQueue = createQueue(resource, user, channel.id, voiceChannel.id);
+    client.queues.set(channel.guild.id, newQueue);
+
+    player.play(resource);
+
+    let connection = getVoiceConnection(channel.guild.id);
+    connection.subscribe(player);
+
+    const confirmation2 = await response.awaitMessageComponent({
+      time: 60_000,
+    });
+    if (confirmation2.customId === "stop") {
+      connection.state.subscription.player.stop();
+
+      response =
+        message && message.edit
+          ? await message.edit({
+              components: [],
+              embeds: [
+                {
+                  title: `${Emojis.cross.str} Stopped Playing`,
+                  color: 0xf9da16,
+                  description: `I have stopped playing music & will remove this message shortly`,
+                },
+              ],
+            })
+          : await response.edit({
+              components: [],
+              embeds: [
+                {
+                  title: `${Emojis.cross.str} Stopped Playing`,
+                  color: 0xf9da16,
+                  description: `I have stopped playing music & will remove this message shortly`,
+                },
+              ],
+              components: [row],
+            });
+
+      setTimeout(async () => {
+        message && message.delete
+          ? message.delete(1000)
+          : response.delete(1000);
+      }, settings.leaveEmptyVC);
+    } else if (confirmation2.customId === "different") {
       const selectMenu = new StringSelectMenuBuilder()
         .setCustomId("select")
         .setPlaceholder("Select Audio");
@@ -231,26 +157,41 @@ async function createSuggestion(
       });
 
       const row = new ActionRowBuilder().addComponents(selectMenu);
+      let new_response =
+        message && message.edit
+          ? message.edit({
+              embeds: [
+                {
+                  title: `${Emojis.think.str} Select Audio`,
+                  color: 0xf9da16,
+                  description: ` **I have a few ditties lined up for you down below.**`,
+                },
+              ],
+              components: [row],
+            })
+          : response.edit({
+              embeds: [
+                {
+                  title: `${Emojis.think.str} Select Audio`,
+                  color: 0xf9da16,
+                  description: ` **I have a few ditties lined up for you down below.**`,
+                },
+              ],
+              components: [row],
+            });
 
-      m.edit({
-        embeds: [
-          {
-            title: `${Emojis.think.str} Select Audio`,
-            color: 0xf9da16,
-            description: ` **I have a few ditties lined up for you down below.**`,
-          },
-        ],
-        components: [row],
-      });
-
-      const collector = m.createMessageComponentCollector({
-        componentType: ComponentType.StringSelect,
-        time: 3_600_000,
-      });
+      const collector = message
+        ? message.createMessageComponentCollector({
+            componentType: ComponentType.StringSelect,
+            time: 3_600_000,
+          })
+        : response.createMessageComponentCollector({
+            componentType: ComponentType.StringSelect,
+            time: 3_600_000,
+          });
 
       collector.on("collect", async (i) => {
         i.deferUpdate();
-        console.log("YOYOYO", m);
         const selection = i.values[0];
 
         createSuggestion(
@@ -260,23 +201,201 @@ async function createSuggestion(
           client,
           audioList.find((val) => val.id === selection),
           [],
-          m
+          message && message.edit ? message : response,
+          true
         );
       });
-    } else if (confirmation.customId === "select") {
     }
-  } catch (e) {
-    console.log("Error: ", e);
-    await m.edit({
-      components: [],
-      embeds: [
-        {
-          title: `${Emojis.cross.str} Suggestion Cancelled`,
-          color: 0xf9da16,
-          description: `Confirmation not received within 1 minute, ignoring suggestion.`,
-        },
-      ],
-    });
+  } catch (err) {
+    console.log("ERROR IN PLAY THING: ", err);
+  }
+}
+async function createSuggestion(
+  channel,
+  user,
+  voiceChannel,
+  client,
+  match,
+  words,
+  message,
+  chooseMode
+) {
+  if (client.autoModes.get(channel.guild.id) || chooseMode) {
+    // Just play it bruh.
+    console.log("Triggering play?");
+    playTrigger(message, channel, voiceChannel, client, user, match);
+  } else {
+    // Suggestion
+
+    const row = new ActionRowBuilder().addComponents(confirm, different);
+
+    try {
+    } catch {}
+    let response =
+      message && message.reply
+        ? message.reply({
+            embeds: [
+              {
+                title: `${Emojis.music.str} Audio Suggestion`,
+                color: 0xf9da16,
+                description:
+                  words.length > 0
+                    ? ` **I heard: "__${words.join(
+                        " "
+                      )}__**"\n\nSounds like you might need some ${
+                        match.name
+                      }, shall I **${match.actionDesc}**`
+                    : `Sounds like you might need some ${match.name}, shall I **${match.actionDesc}**`,
+              },
+            ],
+            components: [row],
+          })
+        : message !== undefined && message.edit
+        ? await message.edit({
+            embeds: [
+              {
+                title: `${Emojis.music.str} Audio Suggestion`,
+                color: 0xf9da16,
+                description:
+                  words.length > 0
+                    ? ` **I heard: "__${words.join(
+                        " "
+                      )}__**"\n\nSounds like you might need some ${
+                        match.name
+                      }, shall I **${match.actionDesc}**`
+                    : `Sounds like you might need some ${match.name}, shall I **${match.actionDesc}**`,
+              },
+            ],
+            components: [row],
+          })
+        : await channel.send({
+            embeds: [
+              {
+                title: `${Emojis.music.str} Audio Suggestion`,
+                color: 0xf9da16,
+                description:
+                  words.length > 0
+                    ? ` **I heard: "__${words.join(
+                        " "
+                      )}__**"\n\nSounds like you might need some ${
+                        match.name
+                      }, shall I **${match.actionDesc}**`
+                    : `Sounds like you might need some ${match.name}, shall I **${match.actionDesc}**`,
+              },
+            ],
+            components: [row],
+          });
+    let confirmation;
+    try {
+      try {
+        confirmation = await response.awaitMessageComponent({
+          time: 60_000,
+        });
+      } catch (err1) {
+        try {
+          console.log("err", err1);
+          confirmation = await message.awaitMessageComponent({
+            time: 60_000,
+          });
+        } catch (err) {
+          console.log("err", err);
+        }
+      }
+      let connection = getVoiceConnection(channel.guild.id);
+
+      if (confirmation.customId === "confirm") {
+        playTrigger(
+          message && message.edit ? message : response,
+          channel,
+          voiceChannel,
+          client,
+          user,
+          match
+        );
+      } else if (confirmation.customId === "stop") {
+        await confirmation.update({
+          content: "Action cancelled",
+          components: [],
+        });
+      } else if (confirmation.customId === "different") {
+        const selectMenu = new StringSelectMenuBuilder()
+          .setCustomId("select")
+          .setPlaceholder("Select Audio");
+
+        audioList.map((val, index) => {
+          selectMenu.addOptions(
+            new StringSelectMenuOptionBuilder()
+              .setLabel(val.name)
+              .setValue(val.id)
+              .setDescription(val.actionDesc)
+          );
+        });
+
+        const row = new ActionRowBuilder().addComponents(selectMenu);
+
+        let new_response =
+          message && message.edit
+            ? message.edit({
+                embeds: [
+                  {
+                    title: `${Emojis.think.str} Select Audio`,
+                    color: 0xf9da16,
+                    description: ` **I have a few ditties lined up for you down below.**`,
+                  },
+                ],
+                components: [row],
+              })
+            : response.edit({
+                embeds: [
+                  {
+                    title: `${Emojis.think.str} Select Audio`,
+                    color: 0xf9da16,
+                    description: ` **I have a few ditties lined up for you down below.**`,
+                  },
+                ],
+                components: [row],
+              });
+
+        const collector = message
+          ? message.createMessageComponentCollector({
+              componentType: ComponentType.StringSelect,
+              time: 3_600_000,
+            })
+          : response.createMessageComponentCollector({
+              componentType: ComponentType.StringSelect,
+              time: 3_600_000,
+            });
+
+        collector.on("collect", async (i) => {
+          i.deferUpdate();
+          const selection = i.values[0];
+
+          createSuggestion(
+            channel,
+            user,
+            voiceChannel,
+            client,
+            audioList.find((val) => val.id === selection),
+            [],
+            message && message.edit ? message : response,
+            true
+          );
+        });
+      } else if (confirmation.customId === "select") {
+      }
+    } catch (e) {
+      console.log("Error: ", e);
+      await message.edit({
+        components: [],
+        embeds: [
+          {
+            title: `${Emojis.cross.str} Suggestion Cancelled`,
+            color: 0xf9da16,
+            description: `Confirmation not received within 1 minute, ignoring suggestion.`,
+          },
+        ],
+      });
+    }
   }
 
   // const collectorFilter = (i) => i.user.id === m.user.id;
@@ -335,9 +454,11 @@ const joinVoiceChannelUtil = async (client, channel) => {
       }
     );
     // delete the queue on channel leave
-    newConnection.on(VoiceConnectionStatus.Destroyed, () =>
-      client.queues.delete(channel.guild.id)
-    );
+    newConnection.on(VoiceConnectionStatus.Destroyed, () => {
+      client.queues.delete(channel.guild.id);
+      client.noteModes.delete(channel.guild.id);
+      client.autoModes.delete(channel.guild.id);
+    });
 
     // making the client a speaker, if in a stage channel
     if (channel.type === ChannelType.GuildStageVoice)
@@ -624,38 +745,38 @@ async function handleQueue(client, player, queue) {
           }
           queue.tracks = [];
           // Queue Empty, do this
-          // const textChannel = await client.channels
-          //   .fetch(queue.textChannel)
-          //   .catch(() => null);
-          // if (textChannel) {
-          //   textChannel
-          //     .send({
-          //       content: translate(
-          //         client,
-          //         textChannel.guildId,
-          //         "QUEUE_EMPTY",
-          //         msUnix(Date.now() + settings.leaveEmptyVC)
-          //       ),
-          //     })
-          //     .catch(console.warn);
-          // }
-          // setTimeout(async () => {
-          //   const nqueue = client.queues.get(queue.guildId);
-          //   if (!nqueue?.tracks?.length) {
-          //     // get the bot's voice Connection
-          //     const meChannel = client.guilds.cache.get(queue.guildId)?.members
-          //       ?.me?.voice?.channel;
-          //     if (meChannel) leaveVoiceChannel(meChannel);
-          //     else {
-          //       // else fetch the voicechannel and leave it
-          //       const vc = await client.channels
-          //         .fetch(queue.voiceChannel)
-          //         .catch(() => null);
-          //       if (vc) leaveVoiceChannel(vc);
-          //     }
-          //   } else console.log(nqueue);
-          //   return;
-          // }, settings.leaveEmptyVC);
+          const textChannel = await client.channels
+            .fetch(queue.textChannel)
+            .catch(() => null);
+          if (textChannel) {
+            textChannel
+              .send({
+                content: translate(
+                  client,
+                  textChannel.guildId,
+                  "QUEUE_EMPTY",
+                  msUnix(Date.now() + settings.leaveEmptyVC)
+                ),
+              })
+              .catch(console.warn);
+          }
+          setTimeout(async () => {
+            const nqueue = client.queues.get(queue.guildId);
+            if (!nqueue?.tracks?.length) {
+              // get the bot's voice Connection
+              const meChannel = client.guilds.cache.get(queue.guildId)?.members
+                ?.me?.voice?.channel;
+              if (meChannel) leaveVoiceChannel(meChannel);
+              else {
+                // else fetch the voicechannel and leave it
+                const vc = await client.channels
+                  .fetch(queue.voiceChannel)
+                  .catch(() => null);
+                if (vc) leaveVoiceChannel(vc);
+              }
+            } else console.log(nqueue);
+            return;
+          }, settings.leaveEmptyVC);
         }
       } else {
         // get the bot's voice Connection
@@ -811,6 +932,7 @@ function findBestMatch(triggeredWords) {
     const matches = audio.tags.filter((tag) =>
       triggeredWords.includes(tag)
     ).length;
+    console.log(matches);
     if (matches > maxMatches) {
       maxMatches = matches;
       bestMatch = audio;

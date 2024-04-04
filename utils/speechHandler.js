@@ -39,6 +39,11 @@ const {
 const { translate } = require("./language");
 const OpenAI = require("openai");
 const { createQueue, createSuggestion } = require("./playerFunctions");
+const {
+  getBotTriggeredWords,
+  getTriggeredWords,
+  getSoundboardKeywords,
+} = require("./speechHandler.helper");
 
 let witAI_lastcallTS = null;
 
@@ -96,74 +101,6 @@ async function parseAudioData(client, VoiceConnection, user, channel) {
   } catch (err) {
     console.log("Error in parsing...");
   }
-}
-
-// Function to find triggers if any and to call them out.
-function getTriggeredWords(array) {
-  let triggeredWords = [];
-  let foundTrigger = false;
-  let initiative = false;
-  let newDay = false;
-
-  // Iterate through the array of strings
-  for (let i = 0; i < array.length; i++) {
-    // Keywords to trigger the audio.
-    let isSuddenly = array[i].toLowerCase() === "suddenly";
-
-    let isRollForInitiative =
-      array.includes("roll") &&
-      (array.includes("initiative") || array.includes("itiative"));
-
-    let isNewDay = array.includes("new") && array.includes("day");
-
-    let isWalkInto = array.includes("walk") && array.includes("into");
-
-    let isInTheDistance =
-      (array.includes("in") && array.includes("distance")) ||
-      (array.includes("the") && array.includes("distance"));
-
-    if (isRollForInitiative) {
-      initiative = true;
-      foundTrigger = true;
-    } else if (isNewDay) {
-      newDay = true;
-      foundTrigger = true;
-    } else if (isSuddenly || isWalkInto || isInTheDistance) {
-      foundTrigger = true;
-    }
-
-    // If trigger words have been found and current word is not a stop word ("as"), add it to the list
-    if (foundTrigger) {
-      triggeredWords.push(array[i]);
-    }
-  }
-
-  return { triggeredWords, initiative, newDay };
-}
-
-// Function to get 'bot play' or 'bot stop' etc. words...
-function getBotTriggeredWords(array) {
-  let triggeredWords = [];
-  let foundTrigger = false;
-
-  // Iterate through the array of strings
-  for (let i = 0; i < array.length; i++) {
-    // Keywords to trigger the audio.
-    let isBot = array[i].toLowerCase() === "bot";
-
-    if (isBot) {
-      foundTrigger = true;
-      triggeredWords = [];
-      continue;
-    }
-
-    // If trigger words have been found and current word is not a stop word ("as"), add it to the list
-    if (foundTrigger) {
-      triggeredWords.push(array[i]);
-    }
-  }
-
-  return triggeredWords;
 }
 
 async function handlePCMFile(
@@ -240,6 +177,60 @@ async function handlePCMFile(
         VoiceConnection.joinConfig.channelId
       );
 
+      // sound board trigger if any
+      // getSoundboardKeywords(output.split(" "), voiceChannel);
+
+      let guildNoteMode = client.noteModes.get(channel.guild.id);
+
+      // If notation mode
+      if (guildNoteMode) {
+        const stop = new ButtonBuilder()
+          .setCustomId("stop")
+          .setLabel("Turn Off")
+          .setStyle(ButtonStyle.Danger);
+
+        const row = new ActionRowBuilder().addComponents(stop);
+
+        let response = channel.send({
+          embeds: [
+            {
+              title: `${Emojis.notes.str} "${output}"`,
+              color: 0xfff,
+              description: `\nBe sure to speak **loud**, **clear**, and **do not pause** when speaking. `,
+            },
+          ],
+          components: [row],
+          flags: [4096],
+        });
+
+        try {
+          const confirmation = await response.awaitMessageComponent({
+            time: 60_000,
+          });
+
+          if (confirmation.customId === "stop") {
+            console.log("clicked?");
+            await response
+              .edit({
+                embeds: [
+                  {
+                    title: `${Emojis.notes.str} Notation mode de-activated. `,
+                    color: 0xcd0400,
+                    description: `Feel free to turn notation mode back on at any time!`,
+                  },
+                ],
+              })
+              .catch((err) => {
+                console.log(err);
+                return null;
+              });
+          }
+        } catch (e) {
+          console.log("Error::::", e);
+        }
+      }
+
+      console.log("words? ", triggeredWords);
       if (!initiative && voice_command.length > 0) {
         // 'Bot' command called for simply running a command.
         return processCommandQuery(
@@ -331,14 +322,6 @@ async function processCommandQuery(
   mp3FileName
 ) {
   const [commandName, ...args] = params;
-
-  await channel
-    .send({
-      content: `✅ **Your Command:**\n> \`\`\`${commandName} ${args.join(
-        " "
-      )}\`\`\``,
-    })
-    .catch(console.warn);
 
   const command =
     client.commands.get(commandName?.toLowerCase()) ||
