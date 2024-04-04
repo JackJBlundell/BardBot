@@ -60,6 +60,8 @@ module.exports = {
       `> __**"Suddenly, darkness surrounds you"**__`,
       `> __**"Roll for initiative"**__`,
       `> __**"A new day begins"**__\n`,
+      `I can even take notes, and auto-play songs for maximum immersion.\n`,
+
       `__**How to Use:**__\n`,
       `You can see the full range of functionality within the __**/help**__ function. 🗣️✨\n`,
       `__**LLM Learning / Feedback:**__\n`,
