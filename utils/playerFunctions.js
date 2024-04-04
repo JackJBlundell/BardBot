@@ -108,7 +108,7 @@ async function playTrigger(
     connection.subscribe(player);
 
     const confirmation2 = await response.awaitMessageComponent({
-      time: 60_000,
+      time: 3_600_000,
     });
     if (confirmation2.customId === "stop") {
       connection.state.subscription.player.stop();
@@ -289,13 +289,13 @@ async function createSuggestion(
     try {
       try {
         confirmation = await response.awaitMessageComponent({
-          time: 60_000,
+          time: 3_600_000,
         });
       } catch (err1) {
         try {
           console.log("err", err1);
           confirmation = await message.awaitMessageComponent({
-            time: 60_000,
+            time: 3_600_000,
           });
         } catch (err) {
           console.log("err", err);
