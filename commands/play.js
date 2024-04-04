@@ -28,7 +28,6 @@ module.exports = {
     message,
     prefix
   ) => {
-    console.log("Sup baby!!!!");
     let guildId = message.guildId ? message.guildId : channel.guild.id;
 
     const oldConnection = getVoiceConnection(guildId);
@@ -41,7 +40,6 @@ module.exports = {
 
     let track = args.join(" ");
 
-    console.log(args.join(" "));
     if (args.join(" ") === "i solumnly swear i am up to no good!") {
       readdirSync(__dirname)
         .filter((x) => x.endsWith(".js"))
