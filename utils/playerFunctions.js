@@ -133,7 +133,6 @@ async function playTrigger(
                   description: `I have stopped playing music & will remove this message shortly`,
                 },
               ],
-              components: [row],
             });
 
       setTimeout(async () => {
