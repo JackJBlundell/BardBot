@@ -183,7 +183,12 @@ async function playTrigger(
             componentType: ComponentType.StringSelect,
             time: 3_600_000,
           })
-        : response.createMessageComponentCollector({
+        : response.createMessageComponentCollector
+        ? response.createMessageComponentCollector({
+            componentType: ComponentType.StringSelect,
+            time: 3_600_000,
+          })
+        : new_response.createMessageComponentCollector({
             componentType: ComponentType.StringSelect,
             time: 3_600_000,
           });

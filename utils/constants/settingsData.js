@@ -675,7 +675,7 @@ module.exports = {
   Status,
   Color,
   settings: {
-    listeningCooldown: 2_500,
+    listeningCooldown: 5_500,
     prefixCommands: ["control", "language", "prefix"],
     leaveEmptyVC: 60_000,
     validVoiceKeyWords: ["bot", "bard", "bard"],
