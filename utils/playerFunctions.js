@@ -58,7 +58,6 @@ async function playTrigger(
   const row = new ActionRowBuilder().addComponents(stop, different);
 
   // Trigger play
-  console.log("hey i should play you know.");
 
   try {
     let response =
@@ -222,7 +221,6 @@ async function createSuggestion(
 ) {
   if (client.autoModes.get(channel.guild.id) || chooseMode) {
     // Just play it bruh.
-    console.log("Triggering play?");
     playTrigger(message, channel, voiceChannel, client, user, match);
   } else {
     // Suggestion
@@ -409,7 +407,6 @@ async function createSuggestion(
  * @returns {Promise<VoiceConnection>} Voiceconnection
  */
 const joinVoiceChannelUtil = async (client, channel) => {
-  console.log("JOINING CHANNEL!");
   return new Promise(async (res, rej) => {
     if (!validVCTypes.includes(channel.type))
       return rej("Channel is not a Voice / Stage Channel");
@@ -448,7 +445,6 @@ const joinVoiceChannelUtil = async (client, channel) => {
           ]);
           // if no error, then it was a swich
         } catch (error) {
-          console.log("DESTROY DESTROY DESTROY");
           newConnection.destroy();
         }
       }
@@ -613,7 +609,6 @@ const getResource = (queue, songInfoId, seekTime = 0) => {
  */
 const playSong = async (client, channel, songInfo) => {
   return new Promise(async (res, rej) => {
-    console.log("Playing song!");
     const oldConnection = getVoiceConnection(channel.guild.id);
     if (oldConnection) {
       if (oldConnection.joinConfig.channelId != channel.id)
@@ -621,24 +616,20 @@ const playSong = async (client, channel, songInfo) => {
       try {
         const curQueue = client.queues.get(channel.guild.id);
 
-        console.log("creating player...");
         const player = createAudioPlayer({
           behaviors: {
             noSubscriber: NoSubscriberBehavior.Stop,
           },
         });
 
-        console.log("Subscribing...");
         oldConnection.subscribe(player);
 
-        console.log("Getting resource,", songInfo.id);
         const resource = getResource(curQueue, songInfo.id);
         // play the resource
         player.play(resource);
 
         // When the player plays a new song
         player.on("playing", (player) => {
-          console.log("playing");
           const queue = client.queues.get(channel.guild.id);
           // if filters changed, don't send something
           if (queue && queue.filtersChanged) {
@@ -932,7 +923,6 @@ function findBestMatch(triggeredWords) {
     const matches = audio.tags.filter((tag) =>
       triggeredWords.includes(tag)
     ).length;
-    console.log(matches);
     if (matches > maxMatches) {
       maxMatches = matches;
       bestMatch = audio;

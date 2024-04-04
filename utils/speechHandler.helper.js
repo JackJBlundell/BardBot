@@ -60,24 +60,19 @@ function getTriggeredWords(array) {
 
   // Iterate over each keyword
   for (const { word, related } of keywords) {
-    console.log(`Checking keyword: ${word}`);
     // Check if the keyword is present in the array
     if (array.includes(word)) {
-      console.log(`Keyword "${word}" found in the array.`);
       // Find all occurrences of the keyword in the array
       const wordIndexes = findAllIndexes(array, word);
       for (const wordIndex of wordIndexes) {
-        console.log(`  Occurrence found at index ${wordIndex}`);
         // If the keyword has no related words, add all words after it to triggeredWords
         if (related.length === 0) {
-          console.log(`  Keyword "${word}" has no related words.`);
           triggeredWords = array;
         } else {
           let foundRequiredRelatedWord = false;
           // Iterate over each related word
           for (const relatedWordObj of related) {
             const { word: relatedWord, rank } = relatedWordObj;
-            console.log(`    Checking related word: ${relatedWord}`);
             // Check the next 5 words after the occurrence of the keyword
             for (
               let i = wordIndex + 1;
@@ -98,9 +93,6 @@ function getTriggeredWords(array) {
                 rank === 2 &&
                 !foundRequiredRelatedWord
               ) {
-                console.log(
-                  `    Found optional related word "${relatedWord}" after keyword "${word}"`
-                );
                 triggeredWords.push(word);
                 triggeredWords.push(relatedWord);
               }
