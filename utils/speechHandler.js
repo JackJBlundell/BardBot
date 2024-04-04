@@ -371,7 +371,7 @@ async function speechToText(res) {
   });
 
   const output = sorted[0]?.split(", ")?.join(" ")?.toLowerCase();
-  if (output.startsWith("hey ")) return output.replace("hey ", "");
+  if (output && output.startsWith("hey ")) return output.replace("hey ", "");
   return output;
 }
 
