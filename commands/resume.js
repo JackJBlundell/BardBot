@@ -9,6 +9,7 @@ const {
 const { parseAudioData } = require("../utils/speechHandler.js");
 const { default: YouTube } = require("youtube-sr");
 const { translate } = require("../utils/language.js");
+const { sendMessage } = require("../utils/message.helper.js");
 module.exports = {
   name: "resume",
   description: "Resumes the current song",
@@ -24,39 +25,31 @@ module.exports = {
     message,
     prefix
   ) => {
-    const oldConnection = getVoiceConnection(message.guildId);
+    const oldConnection = getVoiceConnection(channel.guild.id);
     if (!oldConnection)
-      return channel
-        .send({
-          content: translate(client, message.guildId, "NOT_CONNECTED"),
-        })
-        .catch(() => null);
+      return sendMessage(message, undefined, channel, {
+        content: translate(client, message.guildId, "NOT_CONNECTED"),
+      });
 
     const queue = client.queues.get(message.guildId); // get the queue
     if (!queue) {
-      return channel
-        .send({
-          content: translate(client, message.guildId, "NOTHING_PLAYING"),
-        })
-        .catch(() => null);
+      await sendMessage(message, undefined, channel, {
+        content: translate(client, message.guildId, "NOTHING_PLAYING"),
+      });
     }
     // if already paused
     if (!queue.paused)
-      return channel
-        .send({
-          content: translate(client, message.guildId, "NOT_PAUSED"),
-        })
-        .catch(() => null);
+      return sendMessage(message, undefined, channel, {
+        content: translate(client, message.guildId, "NOT_PAUSED"),
+      });
 
     queue.paused = false;
 
     // skip the track
     oldConnection.state.subscription.player.unpause();
 
-    return channel
-      .send({
-        content: translate(client, message.guildId, "RESUMED"),
-      })
-      .catch(() => null);
+    return sendMessage(message, undefined, channel, client, {
+      content: translate(client, message.guildId, "RESUMED"),
+    });
   },
 };

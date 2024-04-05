@@ -301,23 +301,6 @@ async function handlePCMFile(
         //   model: "gpt-3.5-turbo",
         // });
         // console.log(chatCompletion.choices[0]);
-      } else if (soundboardKeywords > 0) {
-        const command =
-          client.commands.get("suggest") ||
-          client.commands.find((c) => !!c.aliases?.includes("suggest"));
-        if (command) {
-          command.execute(
-            client,
-            triggeredWords,
-            user,
-            channel,
-            voiceChannel,
-            undefined,
-            {}
-          );
-        } else {
-          console.log("Command not found here:", client.commands);
-        }
       }
       // return await msg
       //   .edit({

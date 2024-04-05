@@ -15,6 +15,7 @@ const { parseAudioData } = require("../utils/speechHandler.js");
 const { default: YouTube } = require("youtube-sr");
 const { translate } = require("../utils/language.js");
 const Emojis = require("../utils/constants/Emojis.js");
+const { sendMessage } = require("../utils/message.helper.js");
 module.exports = {
   name: "notes",
   description: "Toggle note mode..",
@@ -31,7 +32,7 @@ module.exports = {
     prefix
   ) => {
     if (!voiceChannel)
-      return sendMessage(message, channel, {
+      return sendMessage(message, undefined, channel, client, {
         content: translate(message.client, message.guildId, "JOIN_VC"),
       });
 
@@ -42,7 +43,9 @@ module.exports = {
 
     sendMessage(
       message,
+      undefined,
       channel,
+      client,
       `${activated ? Emojis.check.str : Emojis.cross.str} Notation mode ${
         activated ? "activated" : "de-actived"
       }.`

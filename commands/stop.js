@@ -36,13 +36,13 @@ module.exports = {
 
     const oldConnection = getVoiceConnection(guildId);
     if (!oldConnection)
-      return sendMessage(message, channel, {
+      return sendMessage(message, undefined, channel, client, {
         content: translate(client, guildId, "NOT_CONNECTED"),
       });
 
     const queue = client.queues.get(guildId); // get the queue
     if (!queue) {
-      return sendMessage(message, channel, {
+      return sendMessage(message, undefined, channel, client, {
         content: translate(client, guildId, "NOTHING_PLAYING"),
       });
     }
@@ -53,7 +53,7 @@ module.exports = {
     // skip the track
     oldConnection.state.subscription.player.stop();
 
-    let response = sendMessage(message, channel, {
+    let response = await sendMessage(message, undefined, channel, client, {
       embeds: [
         {
           title: `${Emojis.cross.str} Stopped Playing`,

@@ -25,38 +25,32 @@ module.exports = {
     message,
     prefix
   ) => {
-    const oldConnection = getVoiceConnection(message.guildId);
+    const oldConnection = getVoiceConnection(channel.guild.id);
     if (!oldConnection)
-      return sendMessage(message, undefined, channel, {
+      return sendMessage(message, undefined, channel, client, {
         content: translate(client, message.guildId, "NOT_CONNECTED"),
       });
 
     const queue = client.queues.get(message.guildId); // get the queue
     if (!queue) {
-      return channel
-        .send({
-          content: translate(client, message.guildId, "NOTHING_PLAYING"),
-        })
-        .catch(() => null);
+      return sendMessage(message, undefined, channel, client, {
+        content: translate(client, message.guildId, "NOTHING_PLAYING"),
+      }).catch(() => null);
     }
 
     // if already paused
     if (queue.paused)
-      return channel
-        .send({
-          content: translate(client, message.guildId, "NOT_RESUMED"),
-        })
-        .catch(() => null);
+      return sendMessage(message, undefined, channel, client, {
+        content: translate(client, message.guildId, "NOT_RESUMED"),
+      }).catch(() => null);
 
     queue.paused = true;
 
     // skip the track
     oldConnection.state.subscription.player.pause();
 
-    return message
-      .reply({
-        content: translate(client, message.guildId, "PAUSED"),
-      })
-      .catch(() => null);
+    return sendMessage(message, undefined, channel, client, {
+      content: translate(client, message.guildId, "PAUSED"),
+    }).catch(() => null);
   },
 };

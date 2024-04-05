@@ -19,7 +19,7 @@ module.exports = {
     message,
     prefix
   ) => {
-    return sendMessage(message, undefined, channel, {
+    return sendMessage(message, undefined, channel, client, {
       content: translate(
         client,
         message.guildId,

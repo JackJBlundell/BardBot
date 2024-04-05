@@ -31,7 +31,7 @@
 //     message,
 //     prefix
 //   ) => {
-//     const oldConnection = getVoiceConnection(message.guildId);
+//     const oldConnection = getVoiceConnection(channel.guild.id);
 //     if (!oldConnection)
 //       return channel
 //         .send({

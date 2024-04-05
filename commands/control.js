@@ -40,7 +40,7 @@ module.exports = {
           .catch(console.warn);
 
       // receive the Bot's connection
-      const oldConnection = getVoiceConnection(message.guildId);
+      const oldConnection = getVoiceConnection(channel.guild.id);
       // if the bot is connected already return error
       if (oldConnection)
         return message
@@ -138,7 +138,12 @@ module.exports = {
           })
           .catch(() => null);
 
-      message.client.listenAbleUsers.add(message.user.id);
+      let id = message.author
+        ? message.author.id
+        : message.user
+        ? message.user.id
+        : "";
+      message.client.listenAbleUsers.add(id);
       message.client.connectedGuilds.add(message.guildId);
 
       //STARTE ZUHÖRER

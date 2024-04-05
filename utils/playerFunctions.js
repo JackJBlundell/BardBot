@@ -12,6 +12,7 @@ const {
   ButtonStyle,
   ComponentType,
 } = require("discord.js");
+
 const {
   entersState,
   joinVoiceChannel,
@@ -46,7 +47,6 @@ const {
   deleteMessage,
   editMessage,
 } = require("./message.helper.js");
-const { showAudioListSelect } = require("../buttons/button.helper.js");
 
 /**
  * An array of valid voice channel types the bot can connect to
@@ -55,18 +55,19 @@ const validVCTypes = [ChannelType.GuildVoice, ChannelType.GuildStageVoice];
 
 async function playTrigger(
   message,
+  outerResponse,
   channel,
   voiceChannel,
   client,
   user,
   match
 ) {
-  const row = new ActionRowBuilder().addComponents(stop, different);
+  const row = new ActionRowBuilder().addComponents(stop);
 
   // Trigger play
 
   try {
-    let response = sendMessage(message, undefined, channel, {
+    let response = await editMessage(message, outerResponse, channel, client, {
       components: [],
       embeds: [
         {
@@ -157,15 +158,21 @@ async function createSuggestion(
 ) {
   if (client.autoModes.get(channel.guild.id) || chooseMode) {
     // Just play it bruh.
-    playTrigger(message, channel, voiceChannel, client, user, match);
+    return playTrigger(
+      message,
+      undefined,
+      channel,
+      voiceChannel,
+      client,
+      user,
+      match
+    );
   } else {
     // Suggestion
 
-    const row = new ActionRowBuilder().addComponents(confirm, different);
+    const row = new ActionRowBuilder().addComponents(confirm);
 
-    try {
-    } catch {}
-    let response = sendMessage(message, undefined, channel, {
+    let response = await sendMessage(message, undefined, channel, client, {
       embeds: [
         {
           title: `${Emojis.music.str} Audio Suggestion`,
@@ -183,8 +190,8 @@ async function createSuggestion(
       components: [row],
     });
 
-    let confirmation;
     try {
+      console.log("Trying...", response, message);
       try {
         confirmation = await response.awaitMessageComponent({
           time: 3_600_000,
@@ -199,11 +206,15 @@ async function createSuggestion(
           console.log("err", err);
         }
       }
+
+      console.log("Done!");
       let connection = getVoiceConnection(channel.guild.id);
 
       if (confirmation.customId === "confirm") {
+        console.log("play ", message && message.edit ? "message" : "response");
         playTrigger(
-          message && message.edit ? message : response,
+          message,
+          response,
           channel,
           voiceChannel,
           client,
@@ -216,69 +227,14 @@ async function createSuggestion(
           components: [],
         });
       } else if (confirmation.customId === "different") {
-        const selectMenu = new StringSelectMenuBuilder()
-          .setCustomId("select")
-          .setPlaceholder("Select Audio");
-
-        audioList.map((val, index) => {
-          selectMenu.addOptions(
-            new StringSelectMenuOptionBuilder()
-              .setLabel(val.name)
-              .setValue(val.id)
-              .setDescription(val.actionDesc)
-          );
-        });
-
-        const row = new ActionRowBuilder().addComponents(selectMenu);
-
-        let new_response =
-          message && message.edit
-            ? message.edit({
-                embeds: [
-                  {
-                    title: `${Emojis.think.str} Select Audio`,
-                    color: 0xf9da16,
-                    description: ` **I have a few ditties lined up for you down below.**`,
-                  },
-                ],
-                components: [row],
-              })
-            : response.edit({
-                embeds: [
-                  {
-                    title: `${Emojis.think.str} Select Audio`,
-                    color: 0xf9da16,
-                    description: ` **I have a few ditties lined up for you down below.**`,
-                  },
-                ],
-                components: [row],
-              });
-
-        const collector = message
-          ? message.createMessageComponentCollector({
-              componentType: ComponentType.StringSelect,
-              time: 3_600_000,
-            })
-          : response.createMessageComponentCollector({
-              componentType: ComponentType.StringSelect,
-              time: 3_600_000,
-            });
-
-        collector.on("collect", async (i) => {
-          i.deferUpdate();
-          const selection = i.values[0];
-
-          createSuggestion(
-            channel,
-            user,
-            voiceChannel,
-            client,
-            audioList.find((val) => val.id === selection),
-            [],
-            message && message.edit ? message : response,
-            true
-          );
-        });
+        return await showAudioListSelect(
+          message,
+          response,
+          channel,
+          voiceChannel,
+          user,
+          client
+        );
       } else if (confirmation.customId === "select") {
       }
     } catch (e) {
@@ -849,3 +805,69 @@ module.exports = {
   createSuggestion,
   findBestMatch,
 };
+
+async function showAudioListSelect(
+  message,
+  response,
+  channel,
+  voiceChannel,
+  user,
+  client
+) {
+  const selectMenu = new StringSelectMenuBuilder()
+    .setCustomId("select")
+    .setPlaceholder("Select Audio");
+
+  audioList.map((val, index) => {
+    selectMenu.addOptions(
+      new StringSelectMenuOptionBuilder()
+        .setLabel(val.name)
+        .setValue(val.id)
+        .setDescription(val.actionDesc)
+    );
+  });
+
+  const row = new ActionRowBuilder().addComponents(selectMenu);
+
+  let new_response = await editMessage(message, response, channel, client, {
+    embeds: [
+      {
+        title: `${Emojis.think.str} Select Audio`,
+        color: 0xf9da16,
+        description: ` **I have a few ditties lined up for you down below.**`,
+      },
+    ],
+    components: [row],
+  });
+
+  const collector = message
+    ? message.createMessageComponentCollector({
+        componentType: ComponentType.StringSelect,
+        time: 3_600_000,
+      })
+    : response.createMessageComponentCollector
+    ? response.createMessageComponentCollector({
+        componentType: ComponentType.StringSelect,
+        time: 3_600_000,
+      })
+    : new_response.createMessageComponentCollector({
+        componentType: ComponentType.StringSelect,
+        time: 3_600_000,
+      });
+
+  collector.on("collect", async (i) => {
+    i.deferUpdate();
+    const selection = i.values[0];
+
+    createSuggestion(
+      channel,
+      user,
+      voiceChannel,
+      client,
+      audioList.find((val) => val.id === selection),
+      [],
+      message && message.edit ? message : new_response,
+      true
+    );
+  });
+}

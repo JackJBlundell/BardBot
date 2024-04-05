@@ -1,11 +1,65 @@
-function sendMessage(message, response, channel, messageContent) {
-  return message && message.reply
-    ? message.reply(messageContent)
-    : message && message.edit
-    ? message.edit(messageContent)
-    : response && response.edit
-    ? response.edit(messageContent)
-    : channel.send(messageContent);
+async function sendMessage(message, response, channel, client, messageContent) {
+  // Check if the message was sent by the bot
+  const isBotMessage =
+    (message && message.author && message.author.id === client.user.id) ||
+    (message && message.user && message.user.id === client.user.id);
+
+  console.log(
+    "is bot message?",
+    message && message.author.id,
+    client.user.id,
+    response
+  );
+  // If the message was sent by the bot, you can edit it
+  if (response && response.edit) {
+    console.log("Editing");
+    return response.edit(messageContent);
+  } else if (message && message.reply) {
+    console.log("Replying");
+
+    return message.reply(messageContent);
+  } else if (isBotMessage && message && message.edit) {
+    console.log("Editing!");
+    return message.edit(messageContent);
+  }
+  // If it's not a bot message or if the message doesn't support editing, reply or send a new message
+  else {
+    console.log("Sending");
+
+    return channel.send(messageContent);
+  }
+}
+
+async function editMessage(message, response, channel, client, messageContent) {
+  // Check if the message was sent by the bot
+  const isBotMessage =
+    (message && message.author && message.author.id === client.user.id) ||
+    (message && message.user && message.user.id === client.user.id);
+
+  console.log(
+    "is bot message?",
+    message && message.author.id,
+    client.user.id,
+    response
+  );
+  // If the message was sent by the bot, you can edit it
+  if (isBotMessage && message && message.edit) {
+    console.log("Editing!");
+    return message.edit(messageContent);
+  }
+  // If it's not a bot message or if the message doesn't support editing, reply or send a new message
+  else if (response && response.edit) {
+    console.log("Editing");
+    return response.edit(messageContent);
+  } else if (message && message.reply) {
+    console.log("Replying");
+
+    return message.reply(messageContent);
+  } else {
+    console.log("Sending");
+
+    return channel.send(messageContent);
+  }
 }
 
 function deleteMessage(message, response) {
@@ -13,4 +67,4 @@ function deleteMessage(message, response) {
     ? message.delete(1000)
     : response.delete(1000);
 }
-module.exports = { sendMessage, deleteMessage };
+module.exports = { sendMessage, editMessage, deleteMessage };
