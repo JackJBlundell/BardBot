@@ -4,12 +4,6 @@ async function sendMessage(message, response, channel, client, messageContent) {
     (message && message.author && message.author.id === client.user.id) ||
     (message && message.user && message.user.id === client.user.id);
 
-  console.log(
-    "is bot message?",
-    message && message.author.id,
-    client.user.id,
-    response
-  );
   // If the message was sent by the bot, you can edit it
   if (response && response.edit) {
     console.log("Editing");
