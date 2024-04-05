@@ -3,6 +3,7 @@ const { PermissionsBitField, SlashCommandBuilder } = require("discord.js");
 const { translate } = require("../utils/language.js");
 const { joinVoiceChannelUtil } = require("../utils/playerFunctions.js");
 const { parseAudioData } = require("../utils/speechHandler.js");
+const { sendMessage } = require("../utils/message.helper.js");
 module.exports = {
   name: "ping",
   description: "Responses with the Api-Ws-Ping",
@@ -18,10 +19,8 @@ module.exports = {
     message,
     prefix
   ) => {
-    channel
-      .send({
-        content: translate(client, message.guildId, "PING", client.ws.ping),
-      })
-      .catch(() => null);
+    sendMessage(message, undefined, channel, client, {
+      content: translate(client, message.guildId, "PING", client.ws.ping),
+    }).catch(() => null);
   },
 };
