@@ -192,7 +192,7 @@ async function handlePCMFile(
 
         const row = new ActionRowBuilder().addComponents(stop);
 
-        let response = channel.send({
+        let response = await channel.send({
           embeds: [
             {
               title: `${Emojis.notes.str} "${output}"`,
