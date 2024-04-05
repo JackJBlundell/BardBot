@@ -50,16 +50,10 @@ module.exports = {
         activated ? "activated" : "de-actived"
       }.`
     );
-    return (await message)
-      ? message.reply(
-          `I will now ${
-            activated ? "start" : "stop"
-          }  automatically playing audio for you.`
-        )
-      : channel.send(
-          `I will now ${
-            activated ? "start" : "stop"
-          }  automatically playing audio for you.`
-        );
+    return await channel.send(
+      `I will now ${
+        activated ? "start" : "stop"
+      }  automatically playing audio for you.`
+    );
   },
 };
