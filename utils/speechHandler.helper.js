@@ -127,18 +127,8 @@ function triggerSoundboard(array, voiceChannel) {
         console.log("keyword: ", effect.keywords[j]);
         if (array.includes(effect.keywords[j])) {
           try {
-            console.log(
-              "playing?",
-              join(__dirname, "..", "assets", "soundboard", effect.url)
-            );
-            sound.play(
-              voiceChannel,
-              createAudioResource(
-                createReadStream(
-                  join(__dirname, "..", "assets", "soundboard", effect.url)
-                )
-              )
-            );
+            console.log("Ok playing!");
+            // sound.play(voiceChannel, "senpai");
           } catch (err) {
             console.log(err);
           }

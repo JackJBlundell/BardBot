@@ -24,7 +24,7 @@ readdirSync(`./commands`)
   .forEach((fileName) =>
     client.commands.set(
       fileName.toLowerCase().replace(".js", ""),
-      require(`./commands/${fileName}`)
+      requireUncached(__dirname + `/commands/${fileName}`)
     )
   );
 readdirSync(`./commandResponses`)

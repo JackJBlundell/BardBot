@@ -17,6 +17,7 @@ const { translate } = require("../utils/language.js");
 const Emojis = require("../utils/constants/Emojis.js");
 const { msUnix } = require("../utils/botUtils.js");
 const { sendMessage } = require("../utils/message.helper.js");
+const { settings } = require("../utils/constants/settingsData.js");
 module.exports = {
   name: "stop",
   description: "Stops the Player and listener!",
