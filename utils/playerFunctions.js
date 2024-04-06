@@ -62,7 +62,7 @@ async function playTrigger(
   user,
   match
 ) {
-  const row = new ActionRowBuilder().addComponents(stop);
+  const row = new ActionRowBuilder().addComponents(stop, different);
 
   // Trigger play
 
@@ -592,21 +592,21 @@ async function handleQueue(client, player, queue) {
           }
           queue.tracks = [];
           // Queue Empty, do this
-          const textChannel = await client.channels
-            .fetch(queue.textChannel)
-            .catch(() => null);
-          if (textChannel) {
-            textChannel
-              .send({
-                content: translate(
-                  client,
-                  textChannel.guildId,
-                  "QUEUE_EMPTY",
-                  msUnix(Date.now() + settings.leaveEmptyVC)
-                ),
-              })
-              .catch(console.warn);
-          }
+          // const textChannel = await client.channels
+          //   .fetch(queue.textChannel)
+          //   .catch(() => null);
+          // if (textChannel) {
+          //   textChannel
+          //     .send({
+          //       content: translate(
+          //         client,
+          //         textChannel.guildId,
+          //         "QUEUE_EMPTY",
+          //         msUnix(Date.now() + settings.leaveEmptyVC)
+          //       ),
+          //     })
+          //     .catch(console.warn);
+          // }
           setTimeout(async () => {
             const nqueue = client.queues.get(queue.guildId);
             if (!nqueue?.tracks?.length) {

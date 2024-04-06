@@ -11,7 +11,10 @@ const { default: YouTube } = require("youtube-sr");
 const { getVoiceConnection } = require("@discordjs/voice");
 const { translate } = require("../utils/language.js");
 const { SlashCommandBuilder, REST, Routes } = require("discord.js");
-const { triggerSoundboard } = require("../utils/speechHandler.helper.js");
+const {
+  triggerSoundboard,
+  suggest,
+} = require("../utils/speechHandler.helper.js");
 const { join } = require("path");
 const { requireUncached } = require("../utils/require.helper.js");
 module.exports = {
@@ -91,13 +94,9 @@ module.exports = {
 
     triggerSoundboard(args, voiceChannel);
 
-    const command =
-      client.commands.get("suggest") ||
-      client.commands.find((c) => !!c.aliases?.includes("suggest"));
-
     let match = findBestMatch(args);
-    if (command && match) {
-      command.execute(client, args, user, channel, voiceChannel, message, {});
+    if (match) {
+      suggest(client, args, user, channel, voiceChannel, message, {});
     }
     // Code for youtube RIP and F U Youtube - For PERSONAL USE as shown by MY OWN id here
     else if (process.env.ADMIN || user.id === "420321514999513108") {

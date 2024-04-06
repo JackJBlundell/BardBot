@@ -44,6 +44,7 @@ const {
   getTriggeredWords,
   getSoundboardKeywords,
   triggerSoundboard,
+  suggest,
 } = require("./speechHandler.helper");
 
 let witAI_lastcallTS = null;
@@ -62,7 +63,7 @@ async function parseAudioData(client, VoiceConnection, user, channel) {
     const audioStream = VoiceConnection.receiver.subscribe(user.id, {
       end: {
         behavior: EndBehaviorType.AfterSilence,
-        duration: 500,
+        duration: 700,
       },
       highWaterMark: 1 << 16,
     });
@@ -127,6 +128,7 @@ async function handlePCMFile(
         let now = Date.now();
         let secCounter = 0;
         while (now - witAI_lastcallTS < 1000) {
+          console.log("delaying push...");
           await delay(100);
           secCounter++;
           now = Date.now();
@@ -144,8 +146,14 @@ async function handlePCMFile(
         },
         body: mp3FileStream,
       })
-        .then((res) => speechToText(res))
+        .then((res) => {
+          console.log(res);
+          console.log("Back from Wit.AI!");
+          return speechToText(res);
+        })
         .catch(console.error);
+
+      console.log("ok we got: ", output);
 
       // stop the mp3 file reading stream
       mp3FileStream.destroy();
@@ -163,9 +171,14 @@ async function handlePCMFile(
             }
           }
         });
-      } catch (err) {}
+      } catch (err) {
+        console.log(err);
+      }
 
-      if (!output?.length) return;
+      if (!output?.length) {
+        console.log("no length");
+        return;
+      }
 
       // Get words after bot
       let voice_command = getBotTriggeredWords(output.split(" "));
@@ -263,50 +276,19 @@ async function handlePCMFile(
           undefined
         );
       } else if (triggeredWords.length > 0) {
-        const command =
-          client.commands.get("suggest") ||
-          client.commands.find((c) => !!c.aliases?.includes("suggest"));
-        if (command) {
-          command.execute(
-            client,
-            triggeredWords,
-            user,
-            channel,
-            voiceChannel,
-            undefined,
-            {}
-          );
-        } else {
-          console.log("Command not found here:", client.commands);
-        }
-        return;
+        suggest(
+          client,
+          triggeredWords,
+          user,
+          channel,
+          voiceChannel,
+          undefined,
+          {}
+        );
 
-        // Ask Chat GPT Which of the tags are best...
-        // Maybe in future...
-        // const chatCompletion = await openai.chat.completions.create({
-        //   messages: [
-        //     {
-        //       role: "system",
-        //       content:
-        //         "You are a simple bot to identify relevant tags for TTRPG's, you listen to the conversation and will choose relevant themes that will determine the mood from the following tags alone: " +
-        //         tags.join(", ") +
-        //         ". You are only to return the output 'error' or return three tags such as 'urban bustling street'",
-        //     },
-        //     {
-        //       role: "user",
-        //       content:
-        //         "What 3 tags for this sentence: '" + triggeredWords.join() + "'",
-        //     },
-        //   ],
-        //   model: "gpt-3.5-turbo",
-        // });
-        // console.log(chatCompletion.choices[0]);
+        return;
       }
-      // return await msg
-      //   .edit({
-      //     content: `${Emojis.cross.str} **INVALID-Input:**\n> \`\`\`${output}\`\`\`\n> Try to speak clearer and faster...`,
-      //   })
-      //   .catch(console.warn);
+      //  Insert message for bad audio if you wanna
     } catch (e) {
       console.error(e);
     }
@@ -351,6 +333,7 @@ async function speechToText(res) {
   const returnData = [];
   for (const thing of wholeBody.split("\n")) {
     if (thing.includes('"text":')) {
+      console.log("Going into text?", thing);
       try {
         //'   "text": "...", '
         const parsedData = JSON.parse(`{ ${thing.trim().replace('",', '"')} }`);
@@ -366,14 +349,18 @@ async function speechToText(res) {
       }
     }
   }
+
+  console.log(returnData);
   const sorted = returnData.sort((a, b) => {
     if (a.length < b.length) return 1;
     if (a.length > b.length) return -1;
     return 0;
   });
 
+  console.log(sorted);
   const output = sorted[0]?.split(", ")?.join(" ")?.toLowerCase();
   if (output && output.startsWith("hey ")) return output.replace("hey ", "");
+  console.log("Returning ", output);
   return output;
 }
 

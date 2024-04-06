@@ -26,6 +26,7 @@ const {
 const { createReadStream } = require("fs");
 
 const { Emojis, audioList } = require("../utils/constants/settingsData.js");
+const { suggest } = require("../utils/speechHandler.helper.js");
 
 module.exports = {
   name: "suggest",
@@ -43,40 +44,6 @@ module.exports = {
     message,
     prefix
   ) => {
-    const oldConnection = getVoiceConnection(channel.guild.id);
-    if (!oldConnection)
-      return channel
-        .send({
-          content: translate(client, channel.guild.id, "NOT_CONNECTED"),
-        })
-        .catch(() => null);
-
-    try {
-      let match = findBestMatch(args);
-
-      console.log("Match? ", match, args);
-      if (match) {
-        createSuggestion(
-          channel,
-          user,
-          voiceChannel,
-          client,
-          match,
-          args,
-          message
-        );
-        return;
-      }
-    } catch (e) {
-      console.error(e);
-      return channel
-        .send(
-          `❌ Could not play the Song because: \`\`\`${e.message || e}`.substr(
-            0,
-            1950
-          ) + `\`\`\``
-        )
-        .catch(() => null);
-    }
+    suggest(client, args, user, channel, voiceChannel, message, prefix);
   },
 };

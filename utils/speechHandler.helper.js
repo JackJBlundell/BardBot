@@ -1,15 +1,62 @@
-const { soundboard } = require("./constants/settingsData");
+const { soundboard, triggerKeywords } = require("./constants/settingsData");
 const SoundBoard = require("djs-soundboard");
 let sound = new SoundBoard();
-const { createAudioResource } = require("@discordjs/voice");
+const { createAudioResource, getVoiceConnection } = require("@discordjs/voice");
 const { createReadStream } = require("fs");
 const { join } = require("path");
+const { translate } = require("./language");
+const { findBestMatch, createSuggestion } = require("./playerFunctions");
 
+function isNewDay(words) {
+  let newPointer = -1; // Pointer for "new"
+  let dayPointer = -1; // Pointer for "day"
+  let beginsPointer = -1; // Pointer for "begins"
+
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+
+    if (word === "new") {
+      newPointer = i;
+    } else if (
+      word === "day" &&
+      newPointer !== -1 &&
+      (dayPointer === -1 || i - newPointer <= 3)
+    ) {
+      dayPointer = i;
+    } else if (
+      word === "begins" &&
+      dayPointer !== -1 &&
+      (beginsPointer === -1 || i - dayPointer <= 3)
+    ) {
+      beginsPointer = i;
+    }
+
+    // If all pointers are set and maintain the correct order within the allowed distance, return true
+    if (
+      newPointer !== -1 &&
+      dayPointer !== -1 &&
+      beginsPointer !== -1 &&
+      beginsPointer - dayPointer <= 3 &&
+      dayPointer - newPointer <= 3
+    ) {
+      return true;
+    }
+  }
+
+  // If the phrase is not found
+  return false;
+}
+
+function isRollInitiative(words) {
+  return words.includes("roll") && words.includes("initiative");
+}
+
+// This needs work!!!
 // Function to find triggers if any and to call them out.
 function getTriggeredWords(array) {
   let triggeredWords = []; // Array to store triggered words
-  let initiative = false; // Flag for initiative trigger
-  let newDay = false; // Flag for new day trigger
+  let initiative = isRollInitiative(array); // Flag for initiative trigger
+  let newDay = isNewDay(array); // Flag for new day trigger
 
   // Helper function to find all occurrences of a word in the array
   function findAllIndexes(arr, val) {
@@ -23,44 +70,7 @@ function getTriggeredWords(array) {
   }
 
   // Check for trigger words and related words
-  const keywords = [
-    {
-      word: "roll",
-      related: [
-        { word: "initiative", rank: 1 },
-        { word: "for", rank: 1 },
-      ],
-    }, // "roll" and its related words
-    { word: "new", related: [{ word: "day", rank: 1 }] }, // "new" and its related word
-    {
-      word: "in",
-      related: [
-        { word: "distance", rank: 1 },
-        { word: "the", rank: 2 },
-      ],
-    }, // "in" and its related words
-    {
-      word: "the",
-      related: [
-        { word: "distance", rank: 1 },
-        { word: "in", rank: 2 },
-      ],
-    }, // "the" and its related words
-    { word: "suddenly", related: [] }, // "suddenly" has no related words
-    {
-      word: "you",
-      related: [
-        { word: "walk", rank: 1 },
-        { word: "run", rank: 1 },
-        { word: "into", rank: 2 },
-        { word: "through", rank: 2 },
-      ],
-    }, // "your" and its related words
-    // Add more keywords and related words as needed
-  ];
-
-  // Iterate over each keyword
-  for (const { word, related } of keywords) {
+  for (const { word, related } of triggerKeywords) {
     // Check if the keyword is present in the array
     if (array.includes(word)) {
       // Find all occurrences of the keyword in the array
@@ -171,4 +181,51 @@ module.exports = {
   getBotTriggeredWords,
   getTriggeredWords,
   triggerSoundboard,
+  suggest,
 };
+
+async function suggest(
+  client,
+  args,
+  user,
+  channel,
+  voiceChannel,
+  message,
+  prefix
+) {
+  const oldConnection = getVoiceConnection(channel.guild.id);
+  if (!oldConnection)
+    return channel
+      .send({
+        content: translate(client, channel.guild.id, "NOT_CONNECTED"),
+      })
+      .catch(() => null);
+
+  try {
+    let match = findBestMatch(args);
+
+    console.log("Match? ", match, args);
+    if (match) {
+      createSuggestion(
+        channel,
+        user,
+        voiceChannel,
+        client,
+        match,
+        args,
+        message
+      );
+      return;
+    }
+  } catch (e) {
+    console.error(e);
+    return channel
+      .send(
+        `❌ Could not play the Song because: \`\`\`${e.message || e}`.substr(
+          0,
+          1950
+        ) + `\`\`\``
+      )
+      .catch(() => null);
+  }
+}
