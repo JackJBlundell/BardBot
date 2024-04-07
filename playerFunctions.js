@@ -15,9 +15,9 @@ const {
 } = require("@discordjs/voice");
 // require settingsData
 const { Color, settings } = require("./constants/settingsData");
-const { translate } = require("./language");
-const { msUnix, delay } = require("./botUtils");
+
 const { EmbedBuilder } = require("discord.js");
+const { translate } = require("./utils/language");
 
 /**
  * An array of valid voice channel types the bot can connect to

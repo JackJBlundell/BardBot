@@ -14,7 +14,7 @@ const {
 const { parseAudioData } = require("../utils/speechHandler.js");
 const { default: YouTube } = require("youtube-sr");
 const { translate } = require("../utils/language.js");
-const Emojis = require("../utils/constants/Emojis.js");
+const Emojis = require("../constants/Emojis.js");
 const { sendMessage } = require("../utils/message.helper.js");
 module.exports = {
   name: "notes",

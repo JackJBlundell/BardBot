@@ -1,7 +1,7 @@
 const { createAudioResource } = require("@discordjs/voice");
 const { Client, Routes, REST } = require("discord.js");
 const { readdirSync } = require("fs");
-const { clientData } = require("./utils/constants/clientData.js");
+const { clientData } = require("./constants/clientData.js");
 require("dotenv").config();
 const path = require("path");
 const { requireUncached } = require("./utils/require.helper.js");

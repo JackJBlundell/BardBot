@@ -7,8 +7,6 @@ const {
   User,
   ButtonBuilder,
   ActionRowBuilder,
-  StringSelectMenuBuilder,
-  StringSelectMenuOptionBuilder,
   ButtonStyle,
   ComponentType,
 } = require("discord.js");
@@ -34,10 +32,10 @@ const {
   createReadStream,
 } = require("fs");
 
-const { Emojis, audioList } = require("../utils/constants/settingsData.js");
+const { Emojis, audioList } = require("../constants/settingsData.js");
 
 // require settingsData
-const { Color, settings } = require("./constants/settingsData");
+const { Color, settings } = require("../constants/settingsData.js");
 const { translate } = require("./language");
 const { msUnix, delay } = require("./botUtils");
 const { EmbedBuilder } = require("discord.js");
@@ -60,25 +58,76 @@ async function playTrigger(
   voiceChannel,
   client,
   user,
-  match
+  match,
+  button
 ) {
-  const row = new ActionRowBuilder().addComponents(stop, different);
+  console.log("match?");
+  const row = new ActionRowBuilder().addComponents(stop);
 
   // Trigger play
 
   try {
-    let response = await editMessage(message, outerResponse, channel, client, {
-      components: [],
-      embeds: [
-        {
-          title: `${Emojis.music.str} Now Playing`,
-          color: 0xf9da16,
-          description: `**Now Playing:** __${match.name}__`,
-        },
-      ],
-      components: [row],
-    });
+    console.log("awaiting message!");
+    let response;
 
+    // If not button it must be through text or voice meaning we do not
+    // have to follow-up or editReply
+    if (!button) {
+      try {
+        response = message.update({
+          components: [],
+          embeds: [
+            {
+              title: `${Emojis.music.str} Now Playing`,
+              color: 0xf9da16,
+              description: `**Now Playing:** __${match.name}__`,
+            },
+          ],
+          components: [row],
+        });
+      } catch {
+        response = await editMessage(message, outerResponse, channel, client, {
+          components: [],
+          embeds: [
+            {
+              title: `${Emojis.music.str} Now Playing`,
+              color: 0xf9da16,
+              description: `**Now Playing:** __${match.name}__`,
+            },
+          ],
+          components: [row],
+        });
+      }
+    } else {
+      // If string select made this happen...
+      try {
+        response = await message.editReply({
+          components: [],
+          embeds: [
+            {
+              title: `${Emojis.music.str} Now Playing`,
+              color: 0xf9da16,
+              description: `**Now Playing:** __${match.name}__`,
+            },
+          ],
+          components: [row],
+        });
+      } catch {
+        response = await message.followUp({
+          components: [],
+          embeds: [
+            {
+              title: `${Emojis.music.str} Now Playing`,
+              color: 0xf9da16,
+              description: `**Now Playing:** __${match.name}__`,
+            },
+          ],
+          components: [row],
+        });
+      }
+    }
+
+    console.log("done?");
     let queue = client.queues.get(channel.guild.id);
 
     // Get music file
@@ -103,45 +152,6 @@ async function playTrigger(
     const confirmation2 = await response.awaitMessageComponent({
       time: 3_600_000,
     });
-    if (confirmation2.customId === "stop") {
-      connection.state.subscription.player.stop();
-
-      response =
-        message && message.edit
-          ? await message.edit({
-              components: [],
-              embeds: [
-                {
-                  title: `${Emojis.cross.str} Stopped Playing`,
-                  color: 0xf9da16,
-                  description: `I have stopped playing music & will remove this message shortly`,
-                },
-              ],
-            })
-          : await response.edit({
-              components: [],
-              embeds: [
-                {
-                  title: `${Emojis.cross.str} Stopped Playing`,
-                  color: 0xf9da16,
-                  description: `I have stopped playing music & will remove this message shortly`,
-                },
-              ],
-            });
-
-      setTimeout(async () => {
-        deleteMessage(message, response);
-      }, settings.leaveEmptyVC);
-    } else if (confirmation2.customId === "different") {
-      showAudioListSelect(
-        message,
-        response,
-        channel,
-        voiceChannel,
-        user,
-        client
-      );
-    }
   } catch (err) {
     console.log("ERROR IN PLAY THING: ", err);
   }
@@ -156,8 +166,11 @@ async function createSuggestion(
   message,
   chooseMode
 ) {
+  console.log("uhh ok... i am in here...");
   if (client.autoModes.get(channel.guild.id) || chooseMode) {
     // Just play it bruh.
+
+    console.log("Playing??", match);
     return playTrigger(
       message,
       undefined,
@@ -171,6 +184,8 @@ async function createSuggestion(
     // Suggestion
 
     const row = new ActionRowBuilder().addComponents(confirm);
+    console.log("adding to suggesitons...", channel.guild.id);
+    client.suggestions.set(channel.guild.id, match);
 
     let response = await sendMessage(message, undefined, channel, client, {
       embeds: [
@@ -189,67 +204,6 @@ async function createSuggestion(
       ],
       components: [row],
     });
-
-    try {
-      console.log("Trying...", response, message);
-      try {
-        confirmation = await response.awaitMessageComponent({
-          time: 3_600_000,
-        });
-      } catch (err1) {
-        try {
-          console.log("err", err1);
-          confirmation = await message.awaitMessageComponent({
-            time: 3_600_000,
-          });
-        } catch (err) {
-          console.log("err", err);
-        }
-      }
-
-      console.log("Done!");
-      let connection = getVoiceConnection(channel.guild.id);
-
-      if (confirmation.customId === "confirm") {
-        console.log("play ", message && message.edit ? "message" : "response");
-        playTrigger(
-          message,
-          response,
-          channel,
-          voiceChannel,
-          client,
-          user,
-          match
-        );
-      } else if (confirmation.customId === "stop") {
-        await confirmation.update({
-          content: "Action cancelled",
-          components: [],
-        });
-      } else if (confirmation.customId === "different") {
-        return await showAudioListSelect(
-          message,
-          response,
-          channel,
-          voiceChannel,
-          user,
-          client
-        );
-      } else if (confirmation.customId === "select") {
-      }
-    } catch (e) {
-      console.log("Error: ", e);
-      await message.edit({
-        components: [],
-        embeds: [
-          {
-            title: `${Emojis.cross.str} Suggestion Cancelled`,
-            color: 0xf9da16,
-            description: `Confirmation not received within 1 minute, ignoring suggestion.`,
-          },
-        ],
-      });
-    }
   }
 
   // const collectorFilter = (i) => i.user.id === m.user.id;
@@ -804,70 +758,5 @@ module.exports = {
   createQueue,
   createSuggestion,
   findBestMatch,
+  playTrigger,
 };
-
-async function showAudioListSelect(
-  message,
-  response,
-  channel,
-  voiceChannel,
-  user,
-  client
-) {
-  const selectMenu = new StringSelectMenuBuilder()
-    .setCustomId("select")
-    .setPlaceholder("Select Audio");
-
-  audioList.map((val, index) => {
-    selectMenu.addOptions(
-      new StringSelectMenuOptionBuilder()
-        .setLabel(val.name)
-        .setValue(val.id)
-        .setDescription(val.actionDesc)
-    );
-  });
-
-  const row = new ActionRowBuilder().addComponents(selectMenu);
-
-  let new_response = await editMessage(message, response, channel, client, {
-    embeds: [
-      {
-        title: `${Emojis.think.str} Select Audio`,
-        color: 0xf9da16,
-        description: ` **I have a few ditties lined up for you down below.**`,
-      },
-    ],
-    components: [row],
-  });
-
-  const collector = message
-    ? message.createMessageComponentCollector({
-        componentType: ComponentType.StringSelect,
-        time: 3_600_000,
-      })
-    : response.createMessageComponentCollector
-    ? response.createMessageComponentCollector({
-        componentType: ComponentType.StringSelect,
-        time: 3_600_000,
-      })
-    : new_response.createMessageComponentCollector({
-        componentType: ComponentType.StringSelect,
-        time: 3_600_000,
-      });
-
-  collector.on("collect", async (i) => {
-    i.deferUpdate();
-    const selection = i.values[0];
-
-    createSuggestion(
-      channel,
-      user,
-      voiceChannel,
-      client,
-      audioList.find((val) => val.id === selection),
-      [],
-      message && message.edit ? message : new_response,
-      true
-    );
-  });
-}

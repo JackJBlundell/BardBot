@@ -23,9 +23,7 @@ const {
   ButtonBuilder,
 } = require("discord.js");
 
-const { createReadStream } = require("fs");
-
-const { Emojis, audioList } = require("../utils/constants/settingsData.js");
+const { Emojis, audioList } = require("../constants/settingsData.js");
 const { suggest } = require("../utils/speechHandler.helper.js");
 
 module.exports = {

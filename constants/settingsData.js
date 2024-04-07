@@ -979,6 +979,14 @@ const triggerKeywords = [
   }, // "the" and its related words
   { word: "suddenly", related: [] }, // "suddenly" has no related words
   {
+    word: "stepping",
+    related: [
+      { word: "into", rank: 1 },
+      { word: "in", rank: 1 },
+      { word: "through", rank: 1 },
+    ],
+  },
+  {
     word: "you",
     related: [
       { word: "walk", rank: 1 },
@@ -991,6 +999,8 @@ const triggerKeywords = [
       { word: "wander", rank: 1 },
       { word: "tiptoe", rank: 1 },
       { word: "roam", rank: 1 },
+      { word: "enter", rank: 1 },
+      { word: "storm", rank: 1 },
       { word: "explore", rank: 1 },
       { word: "trek", rank: 1 },
       { word: "traverse", rank: 1 },

@@ -35,7 +35,7 @@ const {
   Emojis,
   tags,
   audioList,
-} = require("./constants/settingsData");
+} = require("../constants/settingsData");
 const { translate } = require("./language");
 const OpenAI = require("openai");
 const { createQueue, createSuggestion } = require("./playerFunctions");
@@ -92,16 +92,17 @@ async function parseAudioData(client, VoiceConnection, user, channel) {
     writeStream.on("close", async () => {
       // console.log("OUT finished");
 
-      return await handlePCMFile(
-        client,
-        VoiceConnection,
-        user,
-        channel,
-        filename
-      );
+      try {
+        await handlePCMFile(client, VoiceConnection, user, channel, filename);
+      } catch (error) {
+        console.error("Error handling PCM file:", err);
+      } finally {
+        audioStream.destroy();
+        writeStream.destroy();
+      }
     });
   } catch (err) {
-    console.log("Error in parsing...");
+    console.log("Error in parsing...", err);
   }
 }
 
@@ -151,7 +152,9 @@ async function handlePCMFile(
           console.log("Back from Wit.AI!");
           return speechToText(res);
         })
-        .catch(console.error);
+        .catch(() => {
+          return;
+        });
 
       console.log("ok we got: ", output);
 
@@ -180,12 +183,16 @@ async function handlePCMFile(
         return;
       }
 
+      console.log("hey here...");
       // Get words after bot
       let voice_command = getBotTriggeredWords(output.split(" "));
 
+      console.log("Got bot...");
       let { triggeredWords, initiative, newDay } = getTriggeredWords(
         output.split(" ")
       );
+
+      console.log("Got triggered...", newDay);
 
       let voiceChannel = await client.channels.fetch(
         VoiceConnection.joinConfig.channelId
@@ -199,7 +206,7 @@ async function handlePCMFile(
       // If notation mode
       if (guildNoteMode) {
         const stop = new ButtonBuilder()
-          .setCustomId("stop")
+          .setCustomId("note-stop")
           .setLabel("Turn Off")
           .setStyle(ButtonStyle.Danger);
 
@@ -213,6 +220,7 @@ async function handlePCMFile(
               description: `\nBe sure to speak **loud**, **clear**, and **do not pause** when speaking. `,
             },
           ],
+          components: [row],
           flags: [4096],
         });
 
@@ -220,30 +228,10 @@ async function handlePCMFile(
           const confirmation = await response.awaitMessageComponent({
             time: 60_000,
           });
-
-          if (confirmation.customId === "stop") {
-            console.log("clicked?");
-            await response
-              .edit({
-                embeds: [
-                  {
-                    title: `${Emojis.notes.str} Notation mode de-activated. `,
-                    color: 0xcd0400,
-                    description: `Feel free to turn notation mode back on at any time!`,
-                  },
-                ],
-              })
-              .catch((err) => {
-                console.log(err);
-                return null;
-              });
-          }
         } catch (e) {
           console.log("Error::::", e);
         }
       }
-
-      triggerSoundboard(output.split(" "), voiceChannel);
 
       if (!initiative && voice_command.length > 0) {
         // 'Bot' command called for simply running a command.
@@ -266,6 +254,7 @@ async function handlePCMFile(
           undefined
         );
       } else if (newDay) {
+        console.log("creating suggestion...");
         createSuggestion(
           channel,
           user,
@@ -294,6 +283,7 @@ async function handlePCMFile(
     }
   } catch (err) {
     console.log("error in PCM file");
+    return;
   }
 }
 async function processCommandQuery(
@@ -328,13 +318,13 @@ async function processCommandQuery(
 // step one : recieve it as a stream
 // step two : return the last chunk
 async function speechToText(res) {
-  const wholeBody = await res.text();
+  try {
+    const wholeBody = await res.text();
 
-  const returnData = [];
-  for (const thing of wholeBody.split("\n")) {
-    if (thing.includes('"text":')) {
-      console.log("Going into text?", thing);
-      try {
+    const returnData = [];
+    for (const thing of wholeBody.split("\n")) {
+      if (thing.includes('"text":')) {
+        console.log("Going into text?", thing);
         //'   "text": "...", '
         const parsedData = JSON.parse(`{ ${thing.trim().replace('",', '"')} }`);
         if (parsedData?.text) {
@@ -344,41 +334,47 @@ async function speechToText(res) {
             );
           else returnData.push(parsedData.text);
         }
-      } catch (e) {
-        console.warn(e);
       }
     }
+
+    console.log(returnData);
+    const sorted = returnData.sort((a, b) => {
+      if (a.length < b.length) return 1;
+      if (a.length > b.length) return -1;
+      return 0;
+    });
+
+    console.log(sorted);
+    const output = sorted[0]?.split(", ")?.join(" ")?.toLowerCase();
+    if (output && output.startsWith("hey ")) return output.replace("hey ", "");
+    console.log("Returning ", output);
+    return output;
+  } catch (err) {
+    console.error("Error in speech conversion!");
+    return null;
   }
-
-  console.log(returnData);
-  const sorted = returnData.sort((a, b) => {
-    if (a.length < b.length) return 1;
-    if (a.length > b.length) return -1;
-    return 0;
-  });
-
-  console.log(sorted);
-  const output = sorted[0]?.split(", ")?.join(" ")?.toLowerCase();
-  if (output && output.startsWith("hey ")) return output.replace("hey ", "");
-  console.log("Returning ", output);
-  return output;
 }
 
 async function convertAudioFiles(infile, outfile) {
-  return new Promise((resolve, reject) => {
-    ffmpeg(infile)
-      .inputFormat("s16le") // Set input format to raw PCM
-      .inputOptions("-ar 44100") // Set input sample rate to 44100 Hz
-      .inputOptions("-ac 2") // Set input channels to stereo
-      .on("end", () => {
-        resolve(outfile);
-      })
-      .on("error", (err) => {
-        console.error("Error converting audio file:", err);
-        reject(err);
-      })
-      .save(outfile);
-  });
+  try {
+    return new Promise((resolve, reject) => {
+      ffmpeg(infile)
+        .inputFormat("s16le") // Set input format to raw PCM
+        .inputOptions("-ar 44100") // Set input sample rate to 44100 Hz
+        .inputOptions("-ac 2") // Set input channels to stereo
+        .on("end", () => {
+          resolve(outfile);
+        })
+        .on("error", (err) => {
+          console.error("Error converting audio file:", err);
+          reject(err);
+        })
+        .save(outfile);
+    });
+  } catch (error) {
+    console.error("Error in audio file conversion.");
+    throw err;
+  }
 }
 
 module.exports = {

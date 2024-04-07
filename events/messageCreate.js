@@ -1,4 +1,4 @@
-const { settings } = require("../utils/constants/settingsData.js");
+const { settings } = require("../constants/settingsData.js");
 const { translate } = require("../utils/language.js");
 const { escapeRegex } = require("../utils/botUtils.js");
 module.exports = async (client) => {

@@ -8,6 +8,7 @@ module.exports = async (client) => {
   client.connectedGuilds = new Set();
   client.noteModes = new Collection();
   client.autoModes = new Collection();
+  client.suggestions = new Collection();
   // client.db = new Enmap({
   //     name: "maindb",
   //     dataDir: "./databases/main"

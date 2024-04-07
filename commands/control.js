@@ -12,7 +12,7 @@ const {
 } = require("discord.js");
 const { joinVoiceChannelUtil } = require("../utils/playerFunctions.js");
 const { parseAudioData } = require("../utils/speechHandler.js");
-const { settings, Emojis } = require("../utils/constants/settingsData.js");
+const { settings, Emojis } = require("../constants/settingsData.js");
 const { translate } = require("../utils/language.js");
 const { donate, feedback, help } = require("../buttons/buttons.js");
 const justListened = new Map();
@@ -189,31 +189,6 @@ module.exports = {
         .catch((err) => {
           return null;
         });
-
-      try {
-        const confirmation = await response.awaitMessageComponent({
-          time: 60_000,
-        });
-
-        if (confirmation.customId === "help") {
-          await channel
-            .send({
-              content: translate(
-                client,
-                message.guildId,
-                "HELP",
-                prefix || process.env.DEFAULTPREFIX
-              ),
-              components: [],
-            })
-            .catch((err) => {
-              console.log(err);
-              return null;
-            });
-        }
-      } catch (e) {
-        console.log(e);
-      }
     } catch (e) {
       console.error(e);
       message

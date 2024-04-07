@@ -1,4 +1,4 @@
-const { soundboard, triggerKeywords } = require("./constants/settingsData");
+const { soundboard, triggerKeywords } = require("../constants/settingsData");
 const SoundBoard = require("djs-soundboard");
 let sound = new SoundBoard();
 const { createAudioResource, getVoiceConnection } = require("@discordjs/voice");
@@ -8,43 +8,19 @@ const { translate } = require("./language");
 const { findBestMatch, createSuggestion } = require("./playerFunctions");
 
 function isNewDay(words) {
-  let newPointer = -1; // Pointer for "new"
-  let dayPointer = -1; // Pointer for "day"
-  let beginsPointer = -1; // Pointer for "begins"
+  let score = 0;
 
-  for (let i = 0; i < words.length; i++) {
-    const word = words[i];
-
-    if (word === "new") {
-      newPointer = i;
-    } else if (
-      word === "day" &&
-      newPointer !== -1 &&
-      (dayPointer === -1 || i - newPointer <= 3)
-    ) {
-      dayPointer = i;
-    } else if (
-      word === "begins" &&
-      dayPointer !== -1 &&
-      (beginsPointer === -1 || i - dayPointer <= 3)
-    ) {
-      beginsPointer = i;
-    }
-
-    // If all pointers are set and maintain the correct order within the allowed distance, return true
-    if (
-      newPointer !== -1 &&
-      dayPointer !== -1 &&
-      beginsPointer !== -1 &&
-      beginsPointer - dayPointer <= 3 &&
-      dayPointer - newPointer <= 3
-    ) {
-      return true;
-    }
+  if (words.includes("new")) {
+    score += 1;
+  }
+  if (words.includes("day")) {
+    score += 1;
+  }
+  if (words.includes("begins")) {
+    score += 1;
   }
 
-  // If the phrase is not found
-  return false;
+  return score > 1;
 }
 
 function isRollInitiative(words) {

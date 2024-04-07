@@ -1,4 +1,4 @@
-const { Emojis } = require("../utils/constants/settingsData.js");
+const { Emojis } = require("../constants/settingsData.js");
 const {
   newLiner,
   parseChannelMention,

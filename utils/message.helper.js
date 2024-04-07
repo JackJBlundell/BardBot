@@ -30,13 +30,11 @@ async function editMessage(message, response, channel, client, messageContent) {
     (message && message.author && message.author.id === client.user.id) ||
     (message && message.user && message.user.id === client.user.id);
 
-  console.log(
-    "is bot message?",
-    message && message.author.id,
-    client.user.id,
-    response
-  );
   // If the message was sent by the bot, you can edit it
+  if (message && message.update) {
+    console.log("uhhh updating??", message);
+    return message.update(messageContent);
+  }
   if (isBotMessage && message && message.edit) {
     console.log("Editing!");
     return message.edit(messageContent);
@@ -45,10 +43,6 @@ async function editMessage(message, response, channel, client, messageContent) {
   else if (response && response.edit) {
     console.log("Editing");
     return response.edit(messageContent);
-  } else if (message && message.reply) {
-    console.log("Replying");
-
-    return message.reply(messageContent);
   } else {
     console.log("Sending");
 
