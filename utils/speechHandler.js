@@ -163,21 +163,6 @@ async function handlePCMFile(
 
       // delete the temp files
 
-      try {
-        fs.readdir("temp", (err, files) => {
-          if (err) throw err;
-          for (const file of files) {
-            if (file.includes(user.username)) {
-              fs.unlink(join("temp", file), (err) => {
-                if (err) throw err;
-              });
-            }
-          }
-        });
-      } catch (err) {
-        console.log(err);
-      }
-
       if (!output?.length) {
         console.log("no length");
         return;
@@ -193,10 +178,6 @@ async function handlePCMFile(
       );
 
       console.log("Got triggered...", newDay);
-
-      let voiceChannel = await client.channels.fetch(
-        VoiceConnection.joinConfig.channelId
-      );
 
       // sound board trigger if any
       // getSoundboardKeywords(output.split(" "), voiceChannel);
@@ -223,16 +204,9 @@ async function handlePCMFile(
           components: [row],
           flags: [4096],
         });
-
-        try {
-          const confirmation = await response.awaitMessageComponent({
-            time: 60_000,
-          });
-        } catch (e) {
-          console.log("Error::::", e);
-        }
       }
 
+      console.log("done");
       if (!initiative && voice_command.length > 0) {
         // 'Bot' command called for simply running a command.
         return processCommandQuery(
@@ -247,22 +221,26 @@ async function handlePCMFile(
         createSuggestion(
           channel,
           user,
-          voiceChannel,
+          channel,
           client,
           audioList.find((val) => val.id === "boss"),
           triggeredWords,
-          undefined
+          undefined,
+          false,
+          false
         );
       } else if (newDay) {
         console.log("creating suggestion...");
         createSuggestion(
           channel,
           user,
-          voiceChannel,
+          channel,
           client,
           audioList.find((val) => val.id === "adventuring"),
           triggeredWords,
-          undefined
+          undefined,
+          false,
+          false
         );
       } else if (triggeredWords.length > 0) {
         suggest(
@@ -270,9 +248,11 @@ async function handlePCMFile(
           triggeredWords,
           user,
           channel,
-          voiceChannel,
+          channel,
           undefined,
-          {}
+          {},
+          false,
+          false
         );
 
         return;

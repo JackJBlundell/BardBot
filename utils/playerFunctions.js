@@ -62,7 +62,7 @@ async function playTrigger(
   button
 ) {
   console.log("match?");
-  const row = new ActionRowBuilder().addComponents(stop);
+  const row = new ActionRowBuilder().addComponents(stop, different);
 
   // Trigger play
 
@@ -101,19 +101,35 @@ async function playTrigger(
     } else {
       // If string select made this happen...
       try {
-        response = await message.editReply({
-          components: [],
-          embeds: [
-            {
-              title: `${Emojis.music.str} Now Playing`,
-              color: 0xf9da16,
-              description: `**Now Playing:** __${match.name}__`,
-            },
-          ],
-          components: [row],
-        });
-      } catch {
-        response = await message.followUp({
+        try {
+          response = await message.editReply({
+            components: [],
+            embeds: [
+              {
+                title: `${Emojis.music.str} Now Playing`,
+                color: 0xf9da16,
+                description: `**Now Playing:** __${match.name}__`,
+              },
+            ],
+            components: [row],
+          });
+        } catch (error) {
+          console.log(error);
+          response = await message.followUp({
+            components: [],
+            embeds: [
+              {
+                title: `${Emojis.music.str} Now Playing`,
+                color: 0xf9da16,
+                description: `**Now Playing:** __${match.name}__`,
+              },
+            ],
+            components: [row],
+          });
+        }
+      } catch (error) {
+        console.log(error);
+        response = await channel.send({
           components: [],
           embeds: [
             {
@@ -141,19 +157,42 @@ async function playTrigger(
       },
     });
 
-    const newQueue = createQueue(resource, user, channel.id, voiceChannel.id);
+    const newQueue = createQueue(resource, user, channel.id, voiceChannel);
     client.queues.set(channel.guild.id, newQueue);
 
     player.play(resource);
 
-    let connection = getVoiceConnection(channel.guild.id);
+    console.log("Guild ID");
+    let guildId = channel && channel.guild ? channel.guild.id : message.guildId;
+    let connection = getVoiceConnection(guildId);
     connection.subscribe(player);
 
-    const confirmation2 = await response.awaitMessageComponent({
-      time: 3_600_000,
-    });
+    if (connection) {
+      const confirmation = await response.awaitMessageComponent({
+        time: 3_600_000,
+      });
+
+      confirmation.on("collect", async (i) => {
+        i.deferUpdate();
+        const selection = i.values[0];
+
+        createSuggestion(
+          channel,
+          message.user ? message.user : message.author,
+          connection,
+          client,
+          audioList.find((val) => val.id === selection),
+          [],
+          message,
+          true,
+          true
+        );
+      });
+    } else {
+      console.log("no connection");
+    }
   } catch (err) {
-    console.log("ERROR IN PLAY THING: ", err);
+    console.log("ERROR IN PLAY THING 2: ", err);
   }
 }
 async function createSuggestion(
@@ -164,13 +203,14 @@ async function createSuggestion(
   match,
   words,
   message,
+  button,
   chooseMode
 ) {
   console.log("uhh ok... i am in here...");
   if (client.autoModes.get(channel.guild.id) || chooseMode) {
     // Just play it bruh.
 
-    console.log("Playing??", match);
+    console.log("Playing??", message);
     return playTrigger(
       message,
       undefined,
@@ -178,7 +218,8 @@ async function createSuggestion(
       voiceChannel,
       client,
       user,
-      match
+      match,
+      button
     );
   } else {
     // Suggestion

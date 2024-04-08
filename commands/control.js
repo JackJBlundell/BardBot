@@ -31,6 +31,7 @@ module.exports = {
     prefix
   ) => {
     try {
+      console.log("here!");
       // if not connected, return an error
       if (!voiceChannel)
         return message
@@ -54,6 +55,7 @@ module.exports = {
           })
           .catch(() => null);
 
+      console.log("old connection done!");
       // missing Permission for CONNECT
       if (
         !voiceChannel
@@ -70,6 +72,8 @@ module.exports = {
             ),
           })
           .catch(() => null);
+
+      console.log("past voice connection");
       // missing Permission for SPEAK
       if (
         !voiceChannel
@@ -93,11 +97,78 @@ module.exports = {
         voiceChannel
       );
 
+      console.log("joined channel");
+
+      if (!voiceConnection)
+        return message
+          .reply({
+            content: translate(
+              message.client,
+              message.guildId,
+              "COULD_NOT_JOIN",
+              voiceChannel.id
+            ),
+          })
+          .catch(() => null);
+
+      let id = message.author
+        ? message.author.id
+        : message.user
+        ? message.user.id
+        : "";
+      message.client.listenAbleUsers.add(id);
+      message.client.connectedGuilds.add(message.guildId);
+
+      const row = new ActionRowBuilder().addComponents(help, feedback, donate);
+
+      console.log("Should be replying!!?",message);
+      
+      let response = await message
+        .reply({
+          content: translate(
+            message.client,
+            message.guildId,
+            "CONTROLLING",
+            message.client.commands
+              .filter((c) => !settings.prefixCommands.includes(c.name))
+              .map((x) => `\`${x.name}\``)
+              .join(",")
+          ),
+          components: [row],
+        })
+        .catch((err) => {
+          return null;
+        });
+      //STARTE ZUHÖRER
+      voiceConnection.receiver.speaking.on("start", async (userId) => {
+        // if it's an invalid User, or the user is not allowed anymore, or still is on cooldown WAIT
+        if (
+          !message.client.listenAbleUsers.has(userId) ||
+          IsOnCooldown(userId, settings.listeningCooldown)
+        ) {
+          return;
+        }
+        // use and parse the audio data from the user
+
+        parseAudioData(
+          message.client,
+          voiceConnection,
+          message.user,
+          message.channel
+        );
+      });
+
       // Keep alive!
       const networkStateChangeHandler = (oldNetworkState, newNetworkState) => {
         const newUdp = Reflect.get(newNetworkState, "udp");
         clearInterval(newUdp?.keepAliveInterval);
       };
+
+      //ERROR LOGGER
+      voiceConnection.receiver.speaking.on("disconnect", async (e) => {
+        if (e) console.error(e);
+        message.client.listenAbleUsers.delete(message.user.id);
+      });
 
       voiceConnection.on("stateChange", (oldState, newState) => {
         const oldNetworking = Reflect.get(oldState, "networking");
@@ -126,70 +197,8 @@ module.exports = {
           }
         }
       );
-      if (!voiceConnection)
-        return message
-          .reply({
-            content: translate(
-              message.client,
-              message.guildId,
-              "COULD_NOT_JOIN",
-              voiceChannel.id
-            ),
-          })
-          .catch(() => null);
-
-      let id = message.author
-        ? message.author.id
-        : message.user
-        ? message.user.id
-        : "";
-      message.client.listenAbleUsers.add(id);
-      message.client.connectedGuilds.add(message.guildId);
-
-      //STARTE ZUHÖRER
-      voiceConnection.receiver.speaking.on("start", async (userId) => {
-        // if it's an invalid User, or the user is not allowed anymore, or still is on cooldown WAIT
-        if (
-          !message.client.listenAbleUsers.has(userId) ||
-          IsOnCooldown(userId, settings.listeningCooldown)
-        ) {
-          return;
-        }
-        // use and parse the audio data from the user
-
-        parseAudioData(
-          message.client,
-          voiceConnection,
-          message.user,
-          message.channel
-        );
-      });
-
-      //ERROR LOGGER
-      voiceConnection.receiver.speaking.on("disconnect", async (e) => {
-        if (e) console.error(e);
-        message.client.listenAbleUsers.delete(message.user.id);
-      });
-
-      const row = new ActionRowBuilder().addComponents(help, feedback, donate);
-
-      let response = await message
-        .reply({
-          content: translate(
-            message.client,
-            message.guildId,
-            "CONTROLLING",
-            message.client.commands
-              .filter((c) => !settings.prefixCommands.includes(c.name))
-              .map((x) => `\`${x.name}\``)
-              .join(",")
-          ),
-          components: [row],
-        })
-        .catch((err) => {
-          return null;
-        });
     } catch (e) {
+      console.log("Error!");
       console.error(e);
       message
         .reply({
@@ -198,7 +207,9 @@ module.exports = {
               e.message || e
             }`.substring(0, 1950) + `\`\`\``,
         })
-        .catch(() => null);
+        .catch(() => {
+          console.log("caught!")
+        });
     }
   },
 };

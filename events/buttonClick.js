@@ -23,6 +23,7 @@ const { join } = require("path");
 const { createQueue } = require("../playerFunctions.js");
 const { settings, audioList } = require("../constants/settingsData.js");
 const { deleteMessage } = require("../utils/message.helper.js");
+const { error } = require("console");
 
 module.exports = async (client) => {
   client.on("interactionCreate", async (interaction) => {
@@ -31,10 +32,10 @@ module.exports = async (client) => {
 
     console.log("button??");
     // Button only!
-    if (!button) return;
+    if (!button && !stringSelect) return;
 
     try {
-      await interaction.deferReply({ ephemeral: true });
+      // await interaction.deferReply({ ephemeral: true });
     } catch (err) {
       console.log("deferring!");
     }
@@ -67,7 +68,7 @@ module.exports = async (client) => {
         } else if (interaction.customId === "stop") {
           connection.state.subscription.player.stop();
 
-          replyInteraction(
+          let response = await replyInteraction(
             interaction,
             {
               components: [],
@@ -85,57 +86,6 @@ module.exports = async (client) => {
           setTimeout(async () => {
             await deleteMessage(interaction, response);
           }, settings.leaveEmptyVC);
-        } else if (interaction.customId === "different") {
-          const selectMenu = new StringSelectMenuBuilder()
-            .setCustomId("select")
-            .setPlaceholder("Select Audio");
-
-          audioList.map((val, index) => {
-            selectMenu.addOptions(
-              new StringSelectMenuOptionBuilder()
-                .setLabel(val.name)
-                .setValue(val.id)
-                .setDescription(val.actionDesc)
-            );
-          });
-
-          const row = new ActionRowBuilder().addComponents(selectMenu);
-
-          let new_response;
-
-          interaction.editReply({
-            embeds: [
-              {
-                title: `${Emojis.think.str} Select Audio`,
-                color: 0xf9da16,
-                description: ` **I have a few ditties lined up for you down below.**`,
-              },
-            ],
-            components: [row],
-          });
-
-          const message = interaction.fetchReply();
-
-          const collector = message.createMessageComponentCollector({
-            componentType: ComponentType.StringSelect,
-            time: 3_600_000,
-          });
-
-          collector.on("collect", async (i) => {
-            i.deferUpdate();
-            const selection = i.values[0];
-
-            createSuggestion(
-              channel,
-              interaction.author,
-              connection,
-              client,
-              audioList.find((val) => val.id === selection),
-              [],
-              interaction,
-              true
-            );
-          });
         } else if (interaction.customId === "confirm") {
           const suggestion = client.suggestions.get(interaction.guildId);
           let match = suggestion ? suggestion : "";
@@ -144,7 +94,7 @@ module.exports = async (client) => {
           console.log(suggestion, match);
 
           console.log("match?");
-          const row = new ActionRowBuilder().addComponents(stop);
+          const row = new ActionRowBuilder().addComponents(stop, different);
 
           // Trigger play
 
@@ -176,9 +126,38 @@ module.exports = async (client) => {
 
             connection.subscribe(player);
 
-            await replyInteraction(
-              interaction,
-              {
+            console.log("uhhh here it is!");
+
+            let response;
+            try {
+              try {
+                response = await interaction.reply({
+                  components: [],
+                  embeds: [
+                    {
+                      title: `${Emojis.music.str} Now Playing`,
+                      color: 0xf9da16,
+                      description: `**Now Playing:** __${match.name}__`,
+                    },
+                  ],
+                  components: [row],
+                });
+              } catch (error) {
+                response = await interaction.update({
+                  components: [],
+                  embeds: [
+                    {
+                      title: `${Emojis.music.str} Now Playing`,
+                      color: 0xf9da16,
+                      description: `**Now Playing:** __${match.name}__`,
+                    },
+                  ],
+                  components: [row],
+                });
+              }
+            } catch (err) {
+              console.log(err);
+              response = await interaction.editReply({
                 components: [],
                 embeds: [
                   {
@@ -188,17 +167,159 @@ module.exports = async (client) => {
                   },
                 ],
                 components: [row],
-              },
-              channel
-            );
+              });
+            }
+
+            console.log("uh after?");
+
+            // Auto-stop!
+            try {
+              console.log("Getting collector");
+              const collector =
+                interaction.channel.createMessageComponentCollector({
+                  time: 3_600_000,
+                });
+
+              collector.on("collect", async (i) => {
+                i.deferUpdate();
+
+                if (i.customId === "different") {
+                  // Checking the custom ID of the interaction
+                  console.log("SHOULD BE GOING BRO");
+                  const selectMenu = new StringSelectMenuBuilder()
+                    .setCustomId("select")
+                    .setPlaceholder("Select Audio");
+
+                  audioList.map((val, index) => {
+                    selectMenu.addOptions(
+                      new StringSelectMenuOptionBuilder()
+                        .setLabel(val.name)
+                        .setValue(val.id)
+                        .setDescription(val.actionDesc)
+                    );
+                  });
+
+                  const row = new ActionRowBuilder().addComponents(selectMenu);
+
+                  let new_response = interaction.editReply({
+                    embeds: [
+                      {
+                        title: `${Emojis.think.str} Select Audio`,
+                        color: 0xf9da16,
+                        description: ` **I have a few ditties lined up for you down below.**`,
+                      },
+                    ],
+                    components: [row], // Putting components inside the components field
+                  });
+
+                  collector.stop(); // Stop the collector after processing this interactionconst collector =
+                  let new_collector =
+                    interaction.channel.createMessageComponentCollector({
+                      time: 3_600_000,
+                    });
+
+                  new_collector.on("collect", async (i) => {
+                    i.deferUpdate();
+                    const selection = i.values[0];
+
+                    console.log(selection);
+                    createSuggestion(
+                      channel,
+                      interaction.author,
+                      connection,
+                      client,
+                      audioList.find((val) => val.id === selection),
+                      [],
+                      interaction,
+                      true
+                    );
+                  });
+                }
+              });
+            } catch (e) {
+              console.log("Error in creating select ", e);
+              console.log("NOOOOOO");
+              return await interaction.editReply({
+                content: "collector not received within 1 minute, cancelling",
+                components: [],
+              });
+            }
 
             return;
           } catch (err) {
-            console.log("ERROR IN PLAY THING: ", err);
+            console.log("ERROR IN PLAY THING 1: ", err);
+            return;
           }
+        } else if (interaction.customId === "different") {
+          const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId("select")
+            .setPlaceholder("Select Audio");
+
+          audioList.map((val, index) => {
+            selectMenu.addOptions(
+              new StringSelectMenuOptionBuilder()
+                .setLabel(val.name)
+                .setValue(val.id)
+                .setDescription(val.actionDesc)
+            );
+          });
+
+          const row = new ActionRowBuilder().addComponents(selectMenu);
+
+          try {
+            let new_response = await interaction.reply({
+              embeds: [
+                {
+                  title: `${Emojis.think.str} Select Audio`,
+                  color: 0xf9da16,
+                  description: ` **I have a few ditties lined up for you down below.**`,
+                },
+              ],
+              components: [row], // Putting components inside the components field
+            });
+          } catch (err) {
+            await interaction.editReply({
+              embeds: [
+                {
+                  title: `${Emojis.think.str} Select Audio`,
+                  color: 0xf9da16,
+                  description: ` **I have a few ditties lined up for you down below.**`,
+                },
+              ],
+              components: [row], // Putting components inside the components field
+            });
+          }
+          let new_collector =
+            await interaction.channel.createMessageComponentCollector({
+              time: 3_600_000,
+            });
+
+          new_collector.on("collect", async (i) => {
+            try {
+              await i.deferUpdate();
+              const selection = i.values[0];
+
+              console.log(selection);
+              createSuggestion(
+                channel,
+                interaction.author,
+                connection,
+                client,
+                audioList.find((val) => val.id === selection),
+                [],
+                interaction,
+                true,
+                true
+              );
+              return;
+            } catch (err) {
+              console.log(err);
+              return;
+            }
+          });
         } else if (interaction.customId === "note-stop") {
           console.log("clicked?");
-          replyInteraction(
+          return await replyInteraction(
             interaction,
             {
               embeds: [
@@ -211,6 +332,48 @@ module.exports = async (client) => {
             },
             channel
           );
+        } else if (interaction.customId === "select") {
+          console.log("string select!!");
+          try {
+            await interaction.reply({
+              content: "Please make a selection",
+              ephemeral: true,
+            });
+
+            console.log("replied?");
+            let new_collector =
+              await interaction.channel.createMessageComponentCollector({
+                time: 3_600_000,
+                componentType: ComponentType.StringSelect,
+              });
+
+            new_collector.on("collect", async (i) => {
+              console.log("collected...");
+              try {
+                await i.deferUpdate();
+                const selection = i.values[0];
+
+                console.log(selection);
+                createSuggestion(
+                  channel,
+                  interaction.author,
+                  connection,
+                  client,
+                  audioList.find((val) => val.id === selection),
+                  [],
+                  interaction,
+                  true,
+                  true
+                );
+                return;
+              } catch (err) {
+                console.log(err);
+                return;
+              }
+            });
+          } catch (err) {
+            console.log(err);
+          }
         }
       }
     } else {
@@ -230,15 +393,12 @@ async function replyInteraction(interaction, content, channel) {
       throw new Error("Interaction object is not provided.");
     }
 
-    // Check if the interaction is a message component interaction
-    if (interaction.isMessageComponent()) {
-      // Respond to the component interaction using update() to edit the message on which the component was attached
-      try {
-        return await interaction.update(content);
-        return; // Exit the function if update is successful
-      } catch (updateError) {
-        console.error("Error updating interaction:", updateError);
-      }
+    // Respond to the component interaction using update() to edit the message on which the component was attached
+    try {
+      return await interaction.update(content);
+      return; // Exit the function if update is successful
+    } catch (updateError) {
+      console.error("Error updating interaction:", updateError);
     }
 
     // Try other response methods if update() fails

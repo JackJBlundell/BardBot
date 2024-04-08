@@ -91,7 +91,6 @@ module.exports = async (client) => {
   });
 
   client.on("interactionCreate", async (message) => {
-    if (message.isButton()) return message.deferUpdate();
     try {
       // client.db.ensure(message.guildId, {
       //   prefix: process.env.DEFAULTPREFIX ?? "!",

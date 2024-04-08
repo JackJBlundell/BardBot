@@ -189,7 +189,9 @@ async function suggest(
         client,
         match,
         args,
-        message
+        message,
+        false,
+        false
       );
       return;
     }
