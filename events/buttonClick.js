@@ -212,7 +212,7 @@ module.exports = async (client) => {
                     components: [row], // Putting components inside the components field
                   });
 
-                  // collector.stop(); // Stop the collector after processing this interactionconst collector =
+                  collector.stop(); // Stop the collector after processing this interactionconst collector =
                   let new_collector = channel.createMessageComponentCollector({
                     time: 3_600_000,
                   });
@@ -230,8 +230,11 @@ module.exports = async (client) => {
                       audioList.find((val) => val.id === selection),
                       [],
                       new_response,
+                      true,
                       true
                     );
+
+                    new_collector.stop();
                   });
                 }
               });
