@@ -101,7 +101,7 @@ async function playTrigger(
     } else {
       // If string select made this happen...
       try {
-        sendMessage(message, undefined, channel, client, {
+        response = sendMessage(message, undefined, channel, client, {
           components: [],
           embeds: [
             {
