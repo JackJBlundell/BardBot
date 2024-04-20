@@ -6,27 +6,47 @@ async function sendMessage(message, response, channel, client, messageContent) {
 
   const isMessageReplied = isReplied(message);
 
-  // If the message was sent by the bot, you can edit it
-  if (response && response.edit) {
-    console.log("Editing");
-    return await response.edit(messageContent);
-  } else if (message && message.reply && !isMessageReplied) {
-    console.log("Replying");
+  // // If the message was sent by the bot, you can edit it
+  // if (response && response.edit) {
+  //   console.log("Editing");
+  //   return await response.edit(messageContent);
+  // } else if (message && message.reply && !isMessageReplied) {
+  //   console.log("Replying");
+  //   try {
+  //     return await message.reply(messageContent);
+  //   } catch {
+  //     return await message.editReply(messageContent);
+  //   }
+  // } else if (isBotMessage && message && message.edit) {
+  //   console.log("Editing!");
+  //   return await message.edit(messageContent);
+  // }
+  // // If it's not a bot message or if the message doesn't support editing, reply or send a new message
+  // else {
+  //   console.log("Sending");
+  try {
+    return await message.reply(messageContent);
+  } catch (err) {
+    console.log(err);
     try {
-      return await message.reply(messageContent);
-    } catch {
-      return await message.editReply(messageContent);
+      return await message.edit(messageContent);
+    } catch (err1) {
+      console.log(err1);
+      try {
+        return await message.editReply(messageContent);
+      } catch (err2) {
+        console.log(err2);
+        try {
+          return await response.edit(messageContent);
+        } catch (err3) {
+          console.log(err3);
+          return await channel.send(messageContent);
+        }
+      }
     }
-  } else if (isBotMessage && message && message.edit) {
-    console.log("Editing!");
-    return await message.edit(messageContent);
   }
-  // If it's not a bot message or if the message doesn't support editing, reply or send a new message
-  else {
-    console.log("Sending");
 
-    return channel.send(messageContent);
-  }
+  // }
 }
 
 function isReplied(message) {

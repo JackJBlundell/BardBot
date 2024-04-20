@@ -201,7 +201,7 @@ module.exports = async (client) => {
 
                   const row = new ActionRowBuilder().addComponents(selectMenu);
 
-                  let new_response = interaction.editReply({
+                  let new_response = channel.send({
                     embeds: [
                       {
                         title: `${Emojis.think.str} Select Audio`,
@@ -212,11 +212,10 @@ module.exports = async (client) => {
                     components: [row], // Putting components inside the components field
                   });
 
-                  collector.stop(); // Stop the collector after processing this interactionconst collector =
-                  let new_collector =
-                    interaction.channel.createMessageComponentCollector({
-                      time: 3_600_000,
-                    });
+                  // collector.stop(); // Stop the collector after processing this interactionconst collector =
+                  let new_collector = channel.createMessageComponentCollector({
+                    time: 3_600_000,
+                  });
 
                   new_collector.on("collect", async (i) => {
                     i.deferUpdate();
@@ -230,7 +229,7 @@ module.exports = async (client) => {
                       client,
                       audioList.find((val) => val.id === selection),
                       [],
-                      interaction,
+                      new_response,
                       true
                     );
                   });
@@ -250,73 +249,6 @@ module.exports = async (client) => {
             console.log("ERROR IN PLAY THING 1: ", err);
             return;
           }
-        } else if (interaction.customId === "different") {
-          const selectMenu = new StringSelectMenuBuilder()
-            .setCustomId("select")
-            .setPlaceholder("Select Audio");
-
-          audioList.map((val, index) => {
-            selectMenu.addOptions(
-              new StringSelectMenuOptionBuilder()
-                .setLabel(val.name)
-                .setValue(val.id)
-                .setDescription(val.actionDesc)
-            );
-          });
-
-          const row = new ActionRowBuilder().addComponents(selectMenu);
-
-          try {
-            let new_response = await interaction.reply({
-              embeds: [
-                {
-                  title: `${Emojis.think.str} Select Audio`,
-                  color: 0xf9da16,
-                  description: ` **I have a few ditties lined up for you down below.**`,
-                },
-              ],
-              components: [row], // Putting components inside the components field
-            });
-          } catch (err) {
-            await interaction.editReply({
-              embeds: [
-                {
-                  title: `${Emojis.think.str} Select Audio`,
-                  color: 0xf9da16,
-                  description: ` **I have a few ditties lined up for you down below.**`,
-                },
-              ],
-              components: [row], // Putting components inside the components field
-            });
-          }
-          let new_collector =
-            await interaction.channel.createMessageComponentCollector({
-              time: 3_600_000,
-            });
-
-          new_collector.on("collect", async (i) => {
-            try {
-              await i.deferUpdate();
-              const selection = i.values[0];
-
-              console.log(selection);
-              createSuggestion(
-                channel,
-                interaction.author,
-                connection,
-                client,
-                audioList.find((val) => val.id === selection),
-                [],
-                interaction,
-                true,
-                true
-              );
-              return;
-            } catch (err) {
-              console.log(err);
-              return;
-            }
-          });
         } else if (interaction.customId === "note-stop") {
           console.log("clicked?");
           return await replyInteraction(
@@ -379,7 +311,7 @@ module.exports = async (client) => {
     } else {
       return channel
         .send({
-          content: translate(client, guildId, "NOT_CONNECTED"),
+          content: translate(client, channel.guild.id, "NOT_CONNECTED"),
         })
         .catch(() => null);
     }
