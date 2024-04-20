@@ -4,14 +4,19 @@ async function sendMessage(message, response, channel, client, messageContent) {
     (message && message.author && message.author.id === client.user.id) ||
     (message && message.user && message.user.id === client.user.id);
 
+  const isMessageReplied = isReplied(message);
+
   // If the message was sent by the bot, you can edit it
   if (response && response.edit) {
     console.log("Editing");
     return await response.edit(messageContent);
-  } else if (message && message.reply) {
+  } else if (message && message.reply && !isMessageReplied) {
     console.log("Replying");
-
-    return await message.reply(messageContent);
+    try {
+      return await message.reply(messageContent);
+    } catch {
+      return await message.editReply(messageContent);
+    }
   } else if (isBotMessage && message && message.edit) {
     console.log("Editing!");
     return await message.edit(messageContent);
@@ -22,6 +27,21 @@ async function sendMessage(message, response, channel, client, messageContent) {
 
     return channel.send(messageContent);
   }
+}
+
+function isReplied(message) {
+  // Check if the message has a reference
+  if (message && message.reference) {
+    // Check if the reference is to another message
+    if (message.reference.messageID) {
+      return true;
+    }
+    // Check if the reference is to a thread
+    else if (message.reference.threadID) {
+      return true;
+    }
+  }
+  return false;
 }
 
 async function editMessage(message, response, channel, client, messageContent) {

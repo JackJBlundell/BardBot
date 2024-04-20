@@ -101,32 +101,17 @@ async function playTrigger(
     } else {
       // If string select made this happen...
       try {
-        try {
-          response = await message.editReply({
-            components: [],
-            embeds: [
-              {
-                title: `${Emojis.music.str} Now Playing`,
-                color: 0xf9da16,
-                description: `**Now Playing:** __${match.name}__`,
-              },
-            ],
-            components: [row],
-          });
-        } catch (error) {
-          console.log(error);
-          response = await message.followUp({
-            components: [],
-            embeds: [
-              {
-                title: `${Emojis.music.str} Now Playing`,
-                color: 0xf9da16,
-                description: `**Now Playing:** __${match.name}__`,
-              },
-            ],
-            components: [row],
-          });
-        }
+        sendMessage(message, undefined, channel, client, {
+          components: [],
+          embeds: [
+            {
+              title: `${Emojis.music.str} Now Playing`,
+              color: 0xf9da16,
+              description: `**Now Playing:** __${match.name}__`,
+            },
+          ],
+          components: [row],
+        });
       } catch (error) {
         console.log(error);
         response = await channel.send({

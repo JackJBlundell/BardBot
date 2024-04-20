@@ -390,7 +390,8 @@ async function replyInteraction(interaction, content, channel) {
   try {
     // Check if the interaction object is available
     if (!interaction) {
-      throw new Error("Interaction object is not provided.");
+      console.error("No interation recieved");
+      return;
     }
 
     // Respond to the component interaction using update() to edit the message on which the component was attached

@@ -63,7 +63,7 @@ async function parseAudioData(client, VoiceConnection, user, channel) {
     const audioStream = VoiceConnection.receiver.subscribe(user.id, {
       end: {
         behavior: EndBehaviorType.AfterSilence,
-        duration: 700,
+        duration: 400,
       },
       highWaterMark: 1 << 16,
     });
@@ -217,6 +217,7 @@ async function handlePCMFile(
           VoiceConnection,
           mp3FileName
         );
+        return;
       } else if (initiative) {
         createSuggestion(
           channel,
@@ -254,12 +255,13 @@ async function handlePCMFile(
           false,
           false
         );
-
-        return;
       }
+      cleanupTempFiles(user.username);
+      return;
       //  Insert message for bad audio if you wanna
     } catch (e) {
       console.error(e);
+      return;
     }
   } catch (err) {
     console.log("error in PCM file");
@@ -292,6 +294,25 @@ async function processCommandQuery(
     );
   }
   return;
+}
+
+function cleanupTempFiles(username) {
+  try {
+    fs.readdir("temp", (err, files) => {
+      if (err) {
+        console.log(err);
+      }
+      for (const file of files) {
+        if (file.includes(username)) {
+          fs.unlink(join("temp", file), (err) => {
+            if (err) console.error("Error deleting file:", err);
+          });
+        }
+      }
+    });
+  } catch (err) {
+    console.error("Error cleaning up temporary files:", err);
+  }
 }
 
 // the api now returns Unspecific amount of CHUNKS of JSON DATA
@@ -353,7 +374,6 @@ async function convertAudioFiles(infile, outfile) {
     });
   } catch (error) {
     console.error("Error in audio file conversion.");
-    throw err;
   }
 }
 
