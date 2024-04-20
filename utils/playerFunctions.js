@@ -86,7 +86,7 @@ async function playTrigger(
           components: [row],
         });
       } catch {
-        response = await editMessage(message, outerResponse, channel, client, {
+        response = sendMessage(message, undefined, channel, client, {
           components: [],
           embeds: [
             {
