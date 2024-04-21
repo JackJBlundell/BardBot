@@ -62,7 +62,7 @@ async function playTrigger(
   button
 ) {
   console.log("match?");
-  const row = new ActionRowBuilder().addComponents(stop);
+  const row = new ActionRowBuilder().addComponents(stop, different);
 
   // Trigger play
 
@@ -141,7 +141,7 @@ async function playTrigger(
       },
     });
 
-    const newQueue = createQueue(resource, user, channel.id, voiceChannel.id);
+    const newQueue = createQueue(resource, user, channel.id, voiceChannel);
     client.queues.set(channel.guild.id, newQueue);
 
     player.play(resource);
@@ -178,7 +178,8 @@ async function createSuggestion(
       voiceChannel,
       client,
       user,
-      match
+      match,
+      true
     );
   } else {
     // Suggestion

@@ -67,7 +67,7 @@ module.exports = async (client) => {
         } else if (interaction.customId === "stop") {
           connection.state.subscription.player.stop();
 
-          replyInteraction(
+          let response = replyInteraction(
             interaction,
             {
               components: [],
@@ -116,8 +116,7 @@ module.exports = async (client) => {
 
           const message = interaction.fetchReply();
 
-          const collector = message.createMessageComponentCollector({
-            componentType: ComponentType.StringSelect,
+          const collector = channel.createMessageComponentCollector({
             time: 3_600_000,
           });
 
@@ -144,7 +143,7 @@ module.exports = async (client) => {
           console.log(suggestion, match);
 
           console.log("match?");
-          const row = new ActionRowBuilder().addComponents(stop);
+          const row = new ActionRowBuilder().addComponents(stop, different);
 
           // Trigger play
 
