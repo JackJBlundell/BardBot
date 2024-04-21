@@ -7,14 +7,14 @@ async function sendMessage(message, response, channel, client, messageContent) {
   // If the message was sent by the bot, you can edit it
   if (response && response.edit) {
     console.log("Editing");
-    return response.edit(messageContent);
+    return await response.edit(messageContent);
   } else if (message && message.reply) {
     console.log("Replying");
 
-    return message.reply(messageContent);
+    return await message.reply(messageContent);
   } else if (isBotMessage && message && message.edit) {
     console.log("Editing!");
-    return message.edit(messageContent);
+    return await message.edit(messageContent);
   }
   // If it's not a bot message or if the message doesn't support editing, reply or send a new message
   else {
@@ -50,9 +50,4 @@ async function editMessage(message, response, channel, client, messageContent) {
   }
 }
 
-function deleteMessage(message, response) {
-  return message && message.delete
-    ? message.delete(1000)
-    : response.delete(1000);
-}
-module.exports = { sendMessage, editMessage, deleteMessage };
+module.exports = { sendMessage, editMessage };

@@ -9,6 +9,8 @@ const {
   ActionRowBuilder,
   ButtonStyle,
   ComponentType,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
 } = require("discord.js");
 
 const {
@@ -40,11 +42,7 @@ const { translate } = require("./language");
 const { msUnix, delay } = require("./botUtils");
 const { EmbedBuilder } = require("discord.js");
 const { stop, different, confirm } = require("../buttons/buttons.js");
-const {
-  sendMessage,
-  deleteMessage,
-  editMessage,
-} = require("./message.helper.js");
+const { sendMessage, editMessage } = require("./message.helper.js");
 
 /**
  * An array of valid voice channel types the bot can connect to
@@ -126,17 +124,31 @@ async function playTrigger(
             components: [row],
           });
         } catch (err) {
-          response = await channel.send({
-            components: [],
-            embeds: [
-              {
-                title: `${Emojis.music.str} Now Playing`,
-                color: 0xf9da16,
-                description: `**Now Playing:** __${match.name}__`,
-              },
-            ],
-            components: [row],
-          });
+          try {
+            response = await message.edit({
+              components: [],
+              embeds: [
+                {
+                  title: `${Emojis.music.str} Now Playing`,
+                  color: 0xf9da16,
+                  description: `**Now Playing:** __${match.name}__`,
+                },
+              ],
+              components: [row],
+            });
+          } catch {
+            response = await channel.send({
+              components: [],
+              embeds: [
+                {
+                  title: `${Emojis.music.str} Now Playing`,
+                  color: 0xf9da16,
+                  description: `**Now Playing:** __${match.name}__`,
+                },
+              ],
+              components: [row],
+            });
+          }
         }
       }
     }
@@ -198,11 +210,10 @@ async function createSuggestion(
   } else {
     // Suggestion
 
-    const row = new ActionRowBuilder().addComponents(confirm);
+    const row = new ActionRowBuilder().addComponents(confirm, different);
     console.log("adding to suggesitons...", channel.guild.id);
-    client.suggestions.set(channel.guild.id, match);
 
-    let response = await sendMessage(message, undefined, channel, client, {
+    let response = await channel.send({
       embeds: [
         {
           title: `${Emojis.music.str} Audio Suggestion`,
@@ -219,10 +230,249 @@ async function createSuggestion(
       ],
       components: [row],
     });
-  }
 
-  // const collectorFilter = (i) => i.user.id === m.user.id;
-  // No filter because anybody can change it...
+    // const collectorFilter = (i) => i.user.id === m.user.id;
+    // No filter because anybody can change it...
+
+    const confirmation = await response.awaitMessageComponent({
+      time: 60_000,
+    });
+
+    if (confirmation.customId === "confirm") {
+      const row = new ActionRowBuilder().addComponents(stop, different);
+      // Trigger play
+      try {
+        let queue = client.queues.get(channel.guild.id);
+        // Get music file
+        let resource = createAudioResource(
+          createReadStream(join(__dirname, "..", "assets", "music", match.url))
+        );
+        const player = createAudioPlayer({
+          behaviors: {
+            noSubscriber: NoSubscriberBehavior.Pause,
+          },
+        });
+        const connection = getVoiceConnection(channel.guild.id);
+        const newQueue = createQueue(resource, user, channel.id, connection);
+        client.queues.set(channel.guild.id, newQueue);
+        player.play(resource);
+        connection.subscribe(player);
+        let response_new = await response.edit(
+          {
+            components: [],
+            embeds: [
+              {
+                title: `${Emojis.music.str} Now Playing`,
+                color: 0xf9da16,
+                description: `**Now Playing:** __${match.name}__`,
+              },
+            ],
+            components: [row],
+          },
+          channel
+        );
+        //
+        const confirmation = await response_new.awaitMessageComponent({
+          time: 60_000,
+        });
+        if (confirmation.customId === "different") {
+          const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId("select")
+            .setPlaceholder("Select Audio");
+
+          audioList.map((val, index) => {
+            selectMenu.addOptions(
+              new StringSelectMenuOptionBuilder()
+                .setLabel(val.name)
+                .setValue(val.id)
+                .setDescription(val.actionDesc)
+            );
+          });
+          const row = new ActionRowBuilder().addComponents(selectMenu);
+          let new_response;
+          try {
+            new_response = await response.edit({
+              embeds: [
+                {
+                  title: `${Emojis.think.str} Select Audio`,
+                  color: 0xf9da16,
+                  description: ` **I have a few ditties lined up for you down below.**`,
+                },
+              ],
+              components: [row],
+            });
+          } catch (err) {
+            console.log(err);
+          }
+          const collector = new_response.createMessageComponentCollector({
+            componentType: ComponentType.StringSelect,
+            time: 3_600_000,
+          });
+
+          collector.on("collect", async (i) => {
+            const selection = i.values[0];
+
+            console.log(selection);
+            let queue = client.queues.get(channel.guild.id);
+
+            match = audioList.find((val) => val.id === selection);
+
+            if (match) {
+              let resource = createAudioResource(
+                createReadStream(
+                  join(__dirname, "..", "assets", "music", match.url)
+                )
+              );
+
+              const player = createAudioPlayer({
+                behaviors: {
+                  noSubscriber: NoSubscriberBehavior.Pause,
+                },
+              });
+
+              const newQueue = createQueue(
+                resource,
+                user,
+                channel.id,
+                voiceChannel
+              );
+              client.queues.set(channel.guild.id, newQueue);
+
+              player.play(resource);
+
+              let connection = getVoiceConnection(channel.guild.id);
+              connection.subscribe(player);
+
+              const row = new ActionRowBuilder().addComponents(stop);
+
+              await response.edit({
+                components: [],
+                embeds: [
+                  {
+                    title: `${Emojis.music.str} Now Playing`,
+                    color: 0xf9da16,
+                    description: `**Now Playing:** __${match.name}__\n*Note:* You can manually choose an audio using @BardBot play commands, see /help.`,
+                  },
+                ],
+                components: [row],
+              });
+            }
+
+            // Get music file
+          });
+        }
+        return;
+      } catch (err) {
+        console.log("ERROR IN PLAY THING: ", err);
+      }
+    } else if (confirmation.customId === "different") {
+      const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId("select")
+        .setPlaceholder("Select Audio");
+
+      audioList.map((val, index) => {
+        selectMenu.addOptions(
+          new StringSelectMenuOptionBuilder()
+            .setLabel(val.name)
+            .setValue(val.id)
+            .setDescription(val.actionDesc)
+        );
+      });
+      const row = new ActionRowBuilder().addComponents(selectMenu);
+      let new_response;
+      try {
+        new_response = await response.edit({
+          embeds: [
+            {
+              title: `${Emojis.think.str} Select Audio`,
+              color: 0xf9da16,
+              description: ` **I have a few ditties lined up for you down below.**`,
+            },
+          ],
+          components: [row],
+        });
+      } catch (err) {
+        console.log(err);
+      }
+      const collector = new_response.createMessageComponentCollector({
+        componentType: ComponentType.StringSelect,
+        time: 3_600_000,
+      });
+
+      collector.on("collect", async (i) => {
+        const selection = i.values[0];
+
+        console.log(selection);
+        let queue = client.queues.get(channel.guild.id);
+
+        match = audioList.find((val) => val.id === selection);
+
+        if (match) {
+          let resource = createAudioResource(
+            createReadStream(
+              join(__dirname, "..", "assets", "music", match.url)
+            )
+          );
+
+          const player = createAudioPlayer({
+            behaviors: {
+              noSubscriber: NoSubscriberBehavior.Pause,
+            },
+          });
+
+          const newQueue = createQueue(
+            resource,
+            user,
+            channel.id,
+            voiceChannel
+          );
+          client.queues.set(channel.guild.id, newQueue);
+
+          player.play(resource);
+
+          let connection = getVoiceConnection(channel.guild.id);
+          connection.subscribe(player);
+
+          const row = new ActionRowBuilder().addComponents(stop);
+
+          new_response = await response.followUp({
+            components: [],
+            embeds: [
+              {
+                title: `${Emojis.music.str} Now Playing`,
+                color: 0xf9da16,
+                description: `**Now Playing:** __${match.name}__\n*Note:* You can manually choose an audio using @BardBot play commands, see /help.`,
+              },
+            ],
+            components: [row],
+          });
+
+          const confirmation2 = await new_response.awaitMessageComponent({
+            time: 60_000,
+          });
+
+          if (confirmation2.customId === "stop") {
+            connection.state.subscription.player.stop();
+            let response = message.edit(
+              {
+                components: [],
+                embeds: [
+                  {
+                    title: `${Emojis.cross.str} Stopped Playing`,
+                    color: 0xf9da16,
+                    description: `I have stopped playing my amazing music.`,
+                  },
+                ],
+              },
+              channel
+            );
+          }
+        }
+
+        // Get music file
+      });
+    }
+  }
 }
 
 /**
