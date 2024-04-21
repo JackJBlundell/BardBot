@@ -113,17 +113,31 @@ async function playTrigger(
           components: [row],
         });
       } catch {
-        response = await message.followUp({
-          components: [],
-          embeds: [
-            {
-              title: `${Emojis.music.str} Now Playing`,
-              color: 0xf9da16,
-              description: `**Now Playing:** __${match.name}__`,
-            },
-          ],
-          components: [row],
-        });
+        try {
+          response = await message.followUp({
+            components: [],
+            embeds: [
+              {
+                title: `${Emojis.music.str} Now Playing`,
+                color: 0xf9da16,
+                description: `**Now Playing:** __${match.name}__`,
+              },
+            ],
+            components: [row],
+          });
+        } catch (err) {
+          response = await channel.send({
+            components: [],
+            embeds: [
+              {
+                title: `${Emojis.music.str} Now Playing`,
+                color: 0xf9da16,
+                description: `**Now Playing:** __${match.name}__`,
+              },
+            ],
+            components: [row],
+          });
+        }
       }
     }
 

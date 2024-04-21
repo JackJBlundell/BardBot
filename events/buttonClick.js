@@ -103,16 +103,29 @@ module.exports = async (client) => {
 
           let new_response;
 
-          interaction.editReply({
-            embeds: [
-              {
-                title: `${Emojis.think.str} Select Audio`,
-                color: 0xf9da16,
-                description: ` **I have a few ditties lined up for you down below.**`,
-              },
-            ],
-            components: [row],
-          });
+          try {
+            interaction.editReply({
+              embeds: [
+                {
+                  title: `${Emojis.think.str} Select Audio`,
+                  color: 0xf9da16,
+                  description: ` **I have a few ditties lined up for you down below.**`,
+                },
+              ],
+              components: [row],
+            });
+          } catch (err) {
+            interaction.followUp({
+              embeds: [
+                {
+                  title: `${Emojis.think.str} Select Audio`,
+                  color: 0xf9da16,
+                  description: ` **I have a few ditties lined up for you down below.**`,
+                },
+              ],
+              components: [row],
+            });
+          }
 
           const message = interaction.fetchReply();
 

@@ -1018,6 +1018,7 @@ const triggerKeywords = [
       { word: "trudge", rank: 1 },
       { word: "stride", rank: 1 },
       { word: "hike", rank: 1 },
+      { word: "dream", rank: 1 },
     ],
   }, // "your" and its related words
   // Add more keywords and related words as needed
