@@ -41,7 +41,7 @@ const { Color, settings } = require("../constants/settingsData.js");
 const { translate } = require("./language");
 const { msUnix, delay } = require("./botUtils");
 const { EmbedBuilder } = require("discord.js");
-const { stop, different, confirm, stop2 } = require("../buttons/buttons.js");
+const { stop, different, confirm } = require("../buttons/buttons.js");
 const { sendMessage, editMessage } = require("./message.helper.js");
 
 /**
@@ -392,7 +392,7 @@ async function createSuggestion(
           let connection = getVoiceConnection(channel.guild.id);
           connection.subscribe(player);
 
-          const row = new ActionRowBuilder().addComponents(stop2);
+          const row = new ActionRowBuilder().addComponents(stop);
 
           new_response = await response.edit({
             components: [],
@@ -403,14 +403,14 @@ async function createSuggestion(
                 description: `**Note:** You can manually choose or stop audio using @BardBot play commands, see /help.`,
               },
             ],
-            components: [row],
+            components: [],
           });
 
           const confirmation2 = await new_response.awaitMessageComponent({
             time: 60_000,
           });
 
-          if (confirmation2.customId === "stop2") {
+          if (confirmation2.customId === "stop") {
             connection.state.subscription.player.stop();
             let new_new_response = response.edit(
               {
