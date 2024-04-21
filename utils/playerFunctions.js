@@ -41,7 +41,7 @@ const { Color, settings } = require("../constants/settingsData.js");
 const { translate } = require("./language");
 const { msUnix, delay } = require("./botUtils");
 const { EmbedBuilder } = require("discord.js");
-const { stop, different, confirm } = require("../buttons/buttons.js");
+const { stop, different, confirm, stop2 } = require("../buttons/buttons.js");
 const { sendMessage, editMessage } = require("./message.helper.js");
 
 /**
@@ -304,62 +304,21 @@ async function createSuggestion(
           } catch (err) {
             console.log(err);
           }
-          const collector = new_response.createMessageComponentCollector({
-            componentType: ComponentType.StringSelect,
-            time: 3_600_000,
-          });
-
-          collector.on("collect", async (i) => {
-            const selection = i.values[0];
-
-            console.log(selection);
-            let queue = client.queues.get(channel.guild.id);
-
-            match = audioList.find((val) => val.id === selection);
-
-            if (match) {
-              let resource = createAudioResource(
-                createReadStream(
-                  join(__dirname, "..", "assets", "music", match.url)
-                )
-              );
-
-              const player = createAudioPlayer({
-                behaviors: {
-                  noSubscriber: NoSubscriberBehavior.Pause,
+        } else if (confirmation.customId === "stop") {
+          connection.state.subscription.player.stop();
+          await response.edit(
+            {
+              components: [],
+              embeds: [
+                {
+                  title: `${Emojis.cross.str} Stopped Playing`,
+                  color: 0xf9da16,
+                  description: `I have stopped playing my amazing music.`,
                 },
-              });
-
-              const newQueue = createQueue(
-                resource,
-                user,
-                channel.id,
-                voiceChannel
-              );
-              client.queues.set(channel.guild.id, newQueue);
-
-              player.play(resource);
-
-              let connection = getVoiceConnection(channel.guild.id);
-              connection.subscribe(player);
-
-              const row = new ActionRowBuilder().addComponents(stop);
-
-              await response.edit({
-                components: [],
-                embeds: [
-                  {
-                    title: `${Emojis.music.str} Now Playing`,
-                    color: 0xf9da16,
-                    description: `**Now Playing:** __${match.name}__\n*Note:* You can manually choose an audio using @BardBot play commands, see /help.`,
-                  },
-                ],
-                components: [row],
-              });
-            }
-
-            // Get music file
-          });
+              ],
+            },
+            channel
+          );
         }
         return;
       } catch (err) {
@@ -433,15 +392,15 @@ async function createSuggestion(
           let connection = getVoiceConnection(channel.guild.id);
           connection.subscribe(player);
 
-          const row = new ActionRowBuilder().addComponents(stop);
+          const row = new ActionRowBuilder().addComponents(stop2);
 
-          new_response = await response.followUp({
+          new_response = await response.edit({
             components: [],
             embeds: [
               {
-                title: `${Emojis.music.str} Now Playing`,
+                title: `${Emojis.music.str} Now Playing: __${match.name}__`,
                 color: 0xf9da16,
-                description: `**Now Playing:** __${match.name}__\n*Note:* You can manually choose an audio using @BardBot play commands, see /help.`,
+                description: `**Note:** You can manually choose or stop audio using @BardBot play commands, see /help.`,
               },
             ],
             components: [row],
@@ -451,9 +410,9 @@ async function createSuggestion(
             time: 60_000,
           });
 
-          if (confirmation2.customId === "stop") {
+          if (confirmation2.customId === "stop2") {
             connection.state.subscription.player.stop();
-            let response = message.edit(
+            let new_new_response = response.edit(
               {
                 components: [],
                 embeds: [

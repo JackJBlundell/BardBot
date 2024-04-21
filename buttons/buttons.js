@@ -21,6 +21,11 @@ const stop = new ButtonBuilder()
   .setLabel("Stop")
   .setStyle(ButtonStyle.Danger);
 
+const stop2 = new ButtonBuilder()
+  .setCustomId("stop2")
+  .setLabel("Stop")
+  .setStyle(ButtonStyle.Danger);
+
 const different = new ButtonBuilder()
   .setCustomId("different")
   .setLabel("Change Audio")
@@ -30,4 +35,4 @@ const confirm = new ButtonBuilder()
   .setCustomId("confirm")
   .setLabel("▶️ Play")
   .setStyle(ButtonStyle.Success);
-module.exports = { help, donate, feedback, stop, different, confirm };
+module.exports = { help, donate, feedback, stop, different, confirm, stop2 };
